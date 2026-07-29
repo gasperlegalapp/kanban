@@ -15,10 +15,10 @@ export function FilterBar() {
     filters.search !== ''
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 flex-wrap flex-shrink-0">
+    <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--line-soft)] flex-wrap flex-shrink-0">
       {/* Search */}
       <div className="relative">
-        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
+        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-muted" />
         <input
           type="text"
           placeholder="Search cases..."

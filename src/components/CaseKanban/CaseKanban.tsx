@@ -10,12 +10,12 @@ export function CaseKanban() {
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Section header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--line-soft)] flex-shrink-0">
         <div>
-          <h2 className="text-sm font-semibold text-gray-200">Case Workflow Board</h2>
-          <p className="text-[11px] text-gray-500">All cases across lifecycle stages</p>
+          <h2 className="text-sm font-semibold text-ink">Case Workflow Board</h2>
+          <p className="text-[11px] text-ink-muted">All cases across lifecycle stages</p>
         </div>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-ink-muted">
           {filtered.length} case{filtered.length !== 1 ? 's' : ''}
         </span>
       </div>

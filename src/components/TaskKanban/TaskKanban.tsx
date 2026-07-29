@@ -10,11 +10,11 @@ export function TaskKanban() {
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Section header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--line-soft)] flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <div>
-            <h2 className="text-sm font-semibold text-gray-200">Task Board</h2>
-            <p className="text-[11px] text-gray-500">
+            <h2 className="text-sm font-semibold text-ink">Task Board</h2>
+            <p className="text-[11px] text-ink-muted">
               {selectedCase
                 ? `Filtered: ${selectedCase.caseNumber} — ${selectedCase.title}`
                 : 'All tasks across all cases'}
@@ -22,7 +22,7 @@ export function TaskKanban() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs text-gray-500">{tasks.length} task{tasks.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-ink-muted">{tasks.length} task{tasks.length !== 1 ? 's' : ''}</span>
           {selectedCase && (
             <button
               onClick={() => selectCase(null)}

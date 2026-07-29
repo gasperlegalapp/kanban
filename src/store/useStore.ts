@@ -174,6 +174,8 @@ export const useStore = create<AppState>()(
         const c = s.cases.find((x) => x.id === caseId)
         if (!c) return
         const fromStage = c.stage
+        // Dropping a card back on its own column is a no-op, not a stage change
+        if (fromStage === toStage) return
         const stageList = STAGES.map((st) => st.id)
         const fromIdx = stageList.indexOf(fromStage)
         const toIdx = stageList.indexOf(toStage)
@@ -258,7 +260,7 @@ export const useStore = create<AppState>()(
     moveTask(taskId, toStatus) {
       set((s) => {
         const t = s.tasks.find((x) => x.id === taskId)
-        if (t) {
+        if (t && t.status !== toStatus) {
           t.status = toStatus
           t.updatedAt = new Date().toISOString()
         }

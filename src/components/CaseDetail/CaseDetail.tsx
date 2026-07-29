@@ -36,21 +36,21 @@ function MetricTile({
   label: string
   warn?: boolean
 }) {
-  const color = warn && value > 0 ? 'text-red-400' : 'text-gray-100'
-  const iconColor = warn && value > 0 ? 'text-red-500' : 'text-gray-500'
+  const color = warn && value > 0 ? 'text-red-600' : 'text-ink'
+  const iconColor = warn && value > 0 ? 'text-red-500' : 'text-ink-muted'
   return (
     <div
       className="flex flex-col gap-1 rounded-lg px-4 py-3"
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: '#fffcfb',
+        border: '1px solid var(--line)',
       }}
     >
       <div className="flex items-center gap-1.5">
         <Icon size={13} className={iconColor} />
         <span className={`text-xl font-bold tabular-nums leading-none ${color}`}>{value}</span>
       </div>
-      <span className="text-[10px] uppercase tracking-wide text-gray-500">{label}</span>
+      <span className="text-[10px] uppercase tracking-wide text-ink-muted">{label}</span>
     </div>
   )
 }
@@ -68,16 +68,16 @@ function Section({
     <section
       className="rounded-xl overflow-hidden"
       style={{
-        background: 'linear-gradient(180deg, #1a2030 0%, #161b28 100%)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
+        background: 'linear-gradient(180deg, #fffcfb 0%, #f9f1ef 100%)',
+        border: '1px solid var(--line)',
+        boxShadow: '0 4px 20px rgba(120, 70, 60, 0.07), inset 0 1px 0 rgba(255,255,255,0.7)',
       }}
     >
       <div
         className="flex items-center justify-between px-4 py-2.5"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+        style={{ borderBottom: '1px solid var(--line-soft)' }}
       >
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{title}</h3>
         {action}
       </div>
       <div className="p-4">{children}</div>
@@ -102,12 +102,12 @@ function StagePipeline({ currentStage }: { currentStage: CaseStageId }) {
                 active
                   ? `${stage.accentBg} ${stage.textColor}`
                   : done
-                  ? 'text-gray-500'
-                  : 'text-gray-700'
+                  ? 'text-ink-muted'
+                  : 'text-ink-ghost'
               }`}
               style={
                 active
-                  ? { border: '1px solid rgba(255,255,255,0.12)' }
+                  ? { border: '1px solid var(--line)' }
                   : { border: '1px solid transparent' }
               }
             >
@@ -115,7 +115,7 @@ function StagePipeline({ currentStage }: { currentStage: CaseStageId }) {
               {stage.label}
             </div>
             {i < STAGES.length - 1 && (
-              <ArrowRight size={10} className="text-gray-700 flex-shrink-0" />
+              <ArrowRight size={10} className="text-ink-ghost flex-shrink-0" />
             )}
           </div>
         )
@@ -157,12 +157,12 @@ function StepChecklist({
               ) : (
                 <Circle
                   size={12}
-                  className={stepActive ? 'text-indigo-400 flex-shrink-0' : 'text-gray-700 flex-shrink-0'}
+                  className={stepActive ? 'text-indigo-500 flex-shrink-0' : 'text-ink-ghost flex-shrink-0'}
                 />
               )}
               <span
                 className={`text-xs font-medium ${
-                  stepActive ? 'text-gray-100' : stepDone ? 'text-gray-500' : 'text-gray-600'
+                  stepActive ? 'text-ink' : stepDone ? 'text-ink-muted' : 'text-ink-faint'
                 }`}
               >
                 {step.label}
@@ -177,22 +177,22 @@ function StepChecklist({
                   <div key={ss.id} className="flex items-center gap-2">
                     <span
                       className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                        subDone ? 'bg-emerald-500' : subActive ? 'bg-indigo-400' : 'bg-gray-700'
+                        subDone ? 'bg-emerald-500' : subActive ? 'bg-indigo-400' : 'bg-ink-ghost'
                       }`}
                     />
                     <span
                       className={`text-[11px] ${
                         subActive
-                          ? 'text-indigo-300 font-medium'
+                          ? 'text-indigo-600 font-medium'
                           : subDone
-                          ? 'text-gray-500'
-                          : 'text-gray-600'
+                          ? 'text-ink-muted'
+                          : 'text-ink-faint'
                       }`}
                     >
                       {ss.label}
                     </span>
                     {subActive && (
-                      <span className="badge bg-indigo-900/50 text-indigo-300 text-[9px]">
+                      <span className="badge bg-indigo-100 text-indigo-700 text-[9px]">
                         Current
                       </span>
                     )}
@@ -218,8 +218,8 @@ function TaskRow({ task }: { task: Task }) {
     <div
       className="flex items-center gap-3 px-3 py-2 rounded-lg"
       style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.05)',
+        background: 'var(--cream-sunk)',
+        border: '1px solid var(--line-soft)',
       }}
     >
       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${col?.color ?? 'bg-gray-500'}`} />
@@ -227,17 +227,17 @@ function TaskRow({ task }: { task: Task }) {
       <div className="flex-1 min-w-0">
         <p
           className={`text-xs font-medium truncate ${
-            task.status === 'done' ? 'text-gray-500 line-through' : 'text-gray-200'
+            task.status === 'done' ? 'text-ink-muted line-through' : 'text-ink'
           }`}
         >
           {task.title}
         </p>
-        <p className="text-[10px] text-gray-600 truncate">
+        <p className="text-[10px] text-ink-faint truncate">
           {task.assignee}
           {task.dueDate && (
             <>
               {' · '}
-              <span className={overdue ? 'text-red-400' : undefined}>
+              <span className={overdue ? 'text-red-600' : undefined}>
                 due {format(parseISO(task.dueDate), 'MMM d')}
               </span>
             </>
@@ -281,34 +281,34 @@ function ActivityRow({ entry }: { entry: AuditEntry }) {
           }`}
         >
           {isSkip ? (
-            <SkipForward size={11} className="text-amber-400" />
+            <SkipForward size={11} className="text-amber-600" />
           ) : (
-            <ArrowRight size={11} className="text-blue-400" />
+            <ArrowRight size={11} className="text-blue-600" />
           )}
         </div>
-        <div className="w-px flex-1 bg-white/5 mt-1" />
+        <div className="w-px flex-1 bg-[var(--line)] mt-1" />
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-gray-200">{entry.description}</p>
+        <p className="text-xs text-ink">{entry.description}</p>
         {fromStage && toStage && (
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className={`text-[10px] font-medium ${fromStage.textColor}`}>
               {fromStage.label}
             </span>
-            <ArrowRight size={9} className="text-gray-600" />
+            <ArrowRight size={9} className="text-ink-faint" />
             <span className={`text-[10px] font-medium ${toStage.textColor}`}>{toStage.label}</span>
           </div>
         )}
         {entry.reason && (
-          <div className="bg-amber-900/20 border border-amber-500/20 rounded p-1.5 mt-1">
+          <div className="bg-amber-50 border border-amber-300/70 rounded p-1.5 mt-1">
             <div className="flex items-start gap-1.5">
-              <FileText size={9} className="text-amber-400 mt-0.5 flex-shrink-0" />
-              <p className="text-[10px] text-amber-200/80">{entry.reason}</p>
+              <FileText size={9} className="text-amber-600 mt-0.5 flex-shrink-0" />
+              <p className="text-[10px] text-amber-800">{entry.reason}</p>
             </div>
           </div>
         )}
-        <p className="text-[10px] text-gray-600 mt-0.5">
+        <p className="text-[10px] text-ink-faint mt-0.5">
           {entry.actor} · {format(parseISO(entry.timestamp), 'MMM d, yyyy h:mm a')}
         </p>
       </div>
@@ -373,7 +373,7 @@ export function CaseDetail() {
       {/* ─── Page header ─────────────────────────────────────────────────── */}
       <div
         className="flex items-start justify-between gap-4 px-6 py-4 flex-shrink-0"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderBottom: '1px solid var(--line)' }}
       >
         <div className="flex items-start gap-4 min-w-0">
           <button onClick={closeCaseDetail} className="btn-ghost p-2 mt-0.5 flex-shrink-0" title="Back to boards (Esc)">
@@ -383,13 +383,13 @@ export function CaseDetail() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <HealthDot health={m.health} size="md" />
-              <span className="text-[11px] font-mono text-gray-500">{c.caseNumber}</span>
+              <span className="text-[11px] font-mono text-ink-muted">{c.caseNumber}</span>
               {stage && (
                 <span className={`badge ${stage.accentBg} ${stage.textColor}`}>{stage.label}</span>
               )}
             </div>
-            <h2 className="text-lg font-bold text-gray-100 leading-tight">{c.title}</h2>
-            <p className="text-xs text-gray-500 mt-0.5">{c.client}</p>
+            <h2 className="text-lg font-bold text-ink leading-tight">{c.title}</h2>
+            <p className="text-xs text-ink-muted mt-0.5">{c.client}</p>
           </div>
         </div>
 
@@ -432,7 +432,7 @@ export function CaseDetail() {
         <Section title="Workflow position">
           <div className="flex flex-col gap-4">
             <StagePipeline currentStage={c.stage} />
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} className="pt-4">
+            <div style={{ borderTop: '1px solid var(--line-soft)' }} className="pt-4">
               <StepChecklist stageId={c.stage} stepId={c.stepId} subStepId={c.subStepId} />
             </div>
           </div>
@@ -443,35 +443,35 @@ export function CaseDetail() {
           <Section title="Case details">
             <dl className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <User size={12} className="text-gray-600 flex-shrink-0" />
-                <dt className="text-[11px] text-gray-500 w-28 flex-shrink-0">Responsible</dt>
-                <dd className="text-xs text-gray-200 truncate">{c.owner}</dd>
+                <User size={12} className="text-ink-faint flex-shrink-0" />
+                <dt className="text-[11px] text-ink-muted w-28 flex-shrink-0">Responsible</dt>
+                <dd className="text-xs text-ink truncate">{c.owner}</dd>
               </div>
               <div className="flex items-center gap-2">
-                <Calendar size={12} className="text-gray-600 flex-shrink-0" />
-                <dt className="text-[11px] text-gray-500 w-28 flex-shrink-0">Stage entered</dt>
-                <dd className="text-xs text-gray-200 truncate">
+                <Calendar size={12} className="text-ink-faint flex-shrink-0" />
+                <dt className="text-[11px] text-ink-muted w-28 flex-shrink-0">Stage entered</dt>
+                <dd className="text-xs text-ink truncate">
                   {format(parseISO(c.stageEnteredAt), 'MMM d, yyyy')}
-                  <span className="text-gray-600">
+                  <span className="text-ink-faint">
                     {' '}
                     ({formatDistanceToNow(parseISO(c.stageEnteredAt), { addSuffix: true })})
                   </span>
                 </dd>
               </div>
               <div className="flex items-center gap-2">
-                <Clock size={12} className="text-gray-600 flex-shrink-0" />
-                <dt className="text-[11px] text-gray-500 w-28 flex-shrink-0">Last activity</dt>
-                <dd className="text-xs text-gray-200 truncate">
+                <Clock size={12} className="text-ink-faint flex-shrink-0" />
+                <dt className="text-[11px] text-ink-muted w-28 flex-shrink-0">Last activity</dt>
+                <dd className="text-xs text-ink truncate">
                   {formatDistanceToNow(parseISO(c.lastActivity), { addSuffix: true })}
                 </dd>
               </div>
               {c.tags.length > 0 && (
                 <div className="flex items-start gap-2">
-                  <Tag size={12} className="text-gray-600 flex-shrink-0 mt-0.5" />
-                  <dt className="text-[11px] text-gray-500 w-28 flex-shrink-0">Tags</dt>
+                  <Tag size={12} className="text-ink-faint flex-shrink-0 mt-0.5" />
+                  <dt className="text-[11px] text-ink-muted w-28 flex-shrink-0">Tags</dt>
                   <dd className="flex flex-wrap gap-1">
                     {c.tags.map((t) => (
-                      <span key={t} className="badge bg-white/5 text-gray-400 text-[10px]">
+                      <span key={t} className="badge bg-[var(--cream-sunk)] border border-[var(--line-soft)] text-ink-muted text-[10px]">
                         {t}
                       </span>
                     ))}
@@ -483,7 +483,7 @@ export function CaseDetail() {
 
           <Section title="Recent activity">
             {entries.length === 0 ? (
-              <p className="text-xs text-gray-600 py-4 text-center">No activity recorded yet.</p>
+              <p className="text-xs text-ink-faint py-4 text-center">No activity recorded yet.</p>
             ) : (
               <div className="flex flex-col">
                 {entries.slice(0, 5).map((e) => (
@@ -492,7 +492,7 @@ export function CaseDetail() {
                 {entries.length > 5 && (
                   <button
                     onClick={() => openAuditDrawer(c.id)}
-                    className="text-[11px] text-indigo-400 hover:text-indigo-300 self-start mt-1"
+                    className="text-[11px] text-indigo-600 hover:text-indigo-700 self-start mt-1"
                   >
                     View all {entries.length} entries →
                   </button>
@@ -506,13 +506,13 @@ export function CaseDetail() {
         <Section
           title="Tasks"
           action={
-            <span className="text-[11px] text-gray-500">
+            <span className="text-[11px] text-ink-muted">
               {m.openTasks} open · {caseTasks.length} total
             </span>
           }
         >
           {sortedTasks.length === 0 ? (
-            <p className="text-xs text-gray-600 py-4 text-center">No tasks on this case.</p>
+            <p className="text-xs text-ink-faint py-4 text-center">No tasks on this case.</p>
           ) : (
             <div className="flex flex-col gap-1.5">
               {sortedTasks.map((t) => (

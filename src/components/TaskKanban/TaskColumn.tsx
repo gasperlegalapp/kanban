@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Task, TaskStatus } from '../../types'
 import { TaskCard } from './TaskCard'
 import { useStore } from '../../store/useStore'
@@ -11,12 +12,12 @@ interface ColumnDef {
 }
 
 export const TASK_COLUMNS: ColumnDef[] = [
-  { id: 'backlog',     label: 'Backlog',     color: 'bg-gray-500',    textColor: 'text-gray-400',    accentBg: 'bg-gray-500/10' },
-  { id: 'in_progress', label: 'In Progress', color: 'bg-blue-500',    textColor: 'text-blue-400',    accentBg: 'bg-blue-500/10' },
-  { id: 'waiting',    label: 'Waiting',     color: 'bg-amber-500',   textColor: 'text-amber-400',   accentBg: 'bg-amber-500/10' },
-  { id: 'review',     label: 'Review',      color: 'bg-violet-500',  textColor: 'text-violet-400',  accentBg: 'bg-violet-500/10' },
-  { id: 'blocked',    label: 'Blocked',     color: 'bg-red-500',     textColor: 'text-red-400',     accentBg: 'bg-red-500/10' },
-  { id: 'done',       label: 'Done',        color: 'bg-emerald-500', textColor: 'text-emerald-400', accentBg: 'bg-emerald-500/10' },
+  { id: 'backlog',     label: 'Backlog',     color: 'bg-gray-500',    textColor: 'text-ink-muted',    accentBg: 'bg-gray-500/10' },
+  { id: 'in_progress', label: 'In Progress', color: 'bg-blue-500',    textColor: 'text-blue-600',    accentBg: 'bg-blue-500/10' },
+  { id: 'waiting',    label: 'Waiting',     color: 'bg-amber-500',   textColor: 'text-amber-600',   accentBg: 'bg-amber-500/10' },
+  { id: 'review',     label: 'Review',      color: 'bg-violet-500',  textColor: 'text-violet-600',  accentBg: 'bg-violet-500/10' },
+  { id: 'blocked',    label: 'Blocked',     color: 'bg-red-500',     textColor: 'text-red-600',     accentBg: 'bg-red-500/10' },
+  { id: 'done',       label: 'Done',        color: 'bg-emerald-500', textColor: 'text-emerald-600', accentBg: 'bg-emerald-500/10' },
 ]
 
 interface Props {
@@ -26,14 +27,24 @@ interface Props {
 
 export function TaskColumn({ col, tasks }: Props) {
   const { moveTask } = useStore()
+  const [dragOver, setDragOver] = useState(false)
 
   const handleDragOver = (e: React.DragEvent) => {
+    // Only react to task drags, so a case card dragged overhead is ignored
+    if (!e.dataTransfer.types.includes('taskid')) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
+    setDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return
+    setDragOver(false)
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
+    setDragOver(false)
     const taskId = e.dataTransfer.getData('taskId')
     if (taskId) moveTask(taskId, col.id)
   }
@@ -47,7 +58,13 @@ export function TaskColumn({ col, tasks }: Props) {
     <div
       className="kanban-col flex-shrink-0"
       onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      style={
+        dragOver
+          ? { borderColor: 'rgba(99,102,241,0.55)', background: '#f4f0ff' }
+          : undefined
+      }
     >
       {/* Colored top accent bar */}
       <div className={`h-0.5 w-full ${col.color}`} />
@@ -62,7 +79,7 @@ export function TaskColumn({ col, tasks }: Props) {
         </div>
         <span
           className={`text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${col.textColor}`}
-          style={{ background: 'rgba(255,255,255,0.06)' }}
+          style={{ background: 'rgba(140, 90, 80, 0.10)' }}
         >
           {tasks.length}
         </span>
@@ -73,8 +90,8 @@ export function TaskColumn({ col, tasks }: Props) {
           <div
             className="text-center text-xs py-6 rounded-lg"
             style={{
-              color: 'rgba(255,255,255,0.15)',
-              border: '1px dashed rgba(255,255,255,0.07)',
+              color: dragOver ? '#6366f1' : 'var(--ink-ghost)',
+              border: `1px dashed ${dragOver ? 'rgba(99,102,241,0.55)' : 'var(--line)'}`,
             }}
           >
             Drop here

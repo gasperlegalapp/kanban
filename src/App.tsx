@@ -19,12 +19,12 @@ function Stat({
 }) {
   const valueColor =
     highlight === 'red'
-      ? 'text-red-400'
+      ? 'text-red-600'
       : highlight === 'amber'
-      ? 'text-amber-400'
+      ? 'text-amber-600'
       : highlight === 'blue'
-      ? 'text-blue-400'
-      : 'text-gray-100'
+      ? 'text-blue-600'
+      : 'text-ink'
 
   const iconColor =
     highlight === 'red'
@@ -33,7 +33,7 @@ function Stat({
       ? 'text-amber-500'
       : highlight === 'blue'
       ? 'text-blue-500'
-      : 'text-gray-500'
+      : 'text-ink-faint'
 
   return (
     <div className="stat-card">
@@ -41,7 +41,7 @@ function Stat({
         <Icon size={12} className={iconColor} />
         <p className={`text-base font-bold tabular-nums leading-none ${valueColor}`}>{value}</p>
       </div>
-      <p className="text-[10px] text-gray-500 leading-tight">{label}</p>
+      <p className="text-[10px] text-ink-faint leading-tight">{label}</p>
     </div>
   )
 }
@@ -59,9 +59,9 @@ function Header() {
     <header
       className="flex items-center justify-between px-5 py-3 flex-shrink-0"
       style={{
-        background: 'linear-gradient(90deg, #0e1422 0%, #141c30 40%, #141c30 60%, #0e1422 100%)',
-        borderBottom: '1px solid rgba(99,102,241,0.15)',
-        boxShadow: '0 1px 20px rgba(0,0,0,0.5), 0 0 40px rgba(99,102,241,0.05)',
+        background: 'linear-gradient(90deg, #fffcfb 0%, #fdf6f4 40%, #fdf6f4 60%, #fffcfb 100%)',
+        borderBottom: '1px solid rgba(140, 90, 80, 0.14)',
+        boxShadow: '0 1px 16px rgba(120, 70, 60, 0.06)',
       }}
     >
       {/* Brand */}
@@ -76,10 +76,10 @@ function Header() {
           <Scale size={16} className="text-white" />
         </div>
         <div>
-          <h1 className="text-sm font-bold text-gray-100 leading-tight tracking-wide">
+          <h1 className="text-sm font-bold text-ink leading-tight tracking-wide">
             Case Control
           </h1>
-          <p className="text-[10px] text-indigo-400/70 leading-tight">Law Firm Workflow Dashboard</p>
+          <p className="text-[10px] text-indigo-500/80 leading-tight">Law Firm Workflow Dashboard</p>
         </div>
       </div>
 
@@ -109,7 +109,7 @@ function Boards() {
       {/* Case Workflow Board */}
       <div
         className="flex flex-col"
-        style={{ flex: '0 0 55%', minHeight: 0, borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+        style={{ flex: '0 0 55%', minHeight: 0, borderBottom: '1px solid var(--line)' }}
       >
         <CaseKanban />
       </div>
@@ -126,7 +126,7 @@ function App() {
   const detailCaseId = useStore((s) => s.detailCaseId)
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#0b0e18' }}>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: 'var(--cream)' }}>
       <Header />
 
       {/* Case detail page replaces the boards when a case is opened */}
