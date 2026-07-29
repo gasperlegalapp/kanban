@@ -1,4 +1,4 @@
-import { Clock, CheckSquare, AlertCircle, Eye, ChevronRight, History } from 'lucide-react'
+import { Clock, CheckSquare, AlertCircle, Eye, ChevronRight, History, Filter } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { Case } from '../../types'
 import { useStore } from '../../store/useStore'
@@ -34,7 +34,8 @@ const healthBorderClass: Record<string, string> = {
 }
 
 export function CaseCard({ c, selected }: Props) {
-  const { selectCase, getMetrics, openAuditDrawer, openSkipModal, moveCase } = useStore()
+  const { selectCase, getMetrics, openAuditDrawer, openSkipModal, moveCase, openCaseDetail } =
+    useStore()
   const m = getMetrics(c.id)
   const stage = STAGE_MAP.get(c.stage)
 
@@ -51,7 +52,8 @@ export function CaseCard({ c, selected }: Props) {
         selected ? 'ring-1 ring-indigo-500/40' : ''
       }`}
       style={selected ? { background: 'linear-gradient(135deg, #1e2845 0%, #1a2035 100%)' } : undefined}
-      onClick={() => selectCase(c.id)}
+      onClick={() => openCaseDetail(c.id)}
+      title="Open case"
     >
       {/* Top row: case number + health + audit button */}
       <div className="flex items-start justify-between gap-1 mb-1.5">
@@ -59,13 +61,22 @@ export function CaseCard({ c, selected }: Props) {
           <HealthDot health={m.health} />
           <span className="text-[10px] text-gray-600 font-mono flex-shrink-0">{c.caseNumber}</span>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); openAuditDrawer(c.id) }}
-          className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-indigo-400 transition-all flex-shrink-0"
-          title="View audit log"
-        >
-          <History size={12} />
-        </button>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); selectCase(c.id) }}
+            className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-indigo-400 transition-all"
+            title={selected ? 'Clear task filter' : 'Filter task board to this case'}
+          >
+            <Filter size={12} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); openAuditDrawer(c.id) }}
+            className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-indigo-400 transition-all"
+            title="View audit log"
+          >
+            <History size={12} />
+          </button>
+        </div>
       </div>
 
       {/* Case title */}

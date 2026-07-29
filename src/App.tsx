@@ -3,6 +3,7 @@ import { CaseKanban } from './components/CaseKanban/CaseKanban'
 import { TaskKanban } from './components/TaskKanban/TaskKanban'
 import { SkipStageModal } from './components/SkipStageModal'
 import { AuditDrawer } from './components/AuditDrawer'
+import { CaseDetail } from './components/CaseDetail/CaseDetail'
 import { Scale, AlertTriangle, CheckSquare, Briefcase } from 'lucide-react'
 
 function Stat({
@@ -102,25 +103,35 @@ function Header() {
   )
 }
 
+function Boards() {
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Case Workflow Board */}
+      <div
+        className="flex flex-col"
+        style={{ flex: '0 0 55%', minHeight: 0, borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+      >
+        <CaseKanban />
+      </div>
+
+      {/* Task Board */}
+      <div className="flex flex-col" style={{ flex: '0 0 45%', minHeight: 0 }}>
+        <TaskKanban />
+      </div>
+    </div>
+  )
+}
+
 function App() {
+  const detailCaseId = useStore((s) => s.detailCaseId)
+
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#0b0e18' }}>
       <Header />
 
-      {/* Two-panel layout: top 55% case board, bottom 45% task board */}
+      {/* Case detail page replaces the boards when a case is opened */}
       <div className="flex flex-col flex-1 min-h-0">
-        {/* Case Workflow Board */}
-        <div
-          className="flex flex-col"
-          style={{ flex: '0 0 55%', minHeight: 0, borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-        >
-          <CaseKanban />
-        </div>
-
-        {/* Task Board */}
-        <div className="flex flex-col" style={{ flex: '0 0 45%', minHeight: 0 }}>
-          <TaskKanban />
-        </div>
+        {detailCaseId ? <CaseDetail /> : <Boards />}
       </div>
 
       {/* Modals & Drawers */}

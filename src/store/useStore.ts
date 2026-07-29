@@ -24,6 +24,8 @@ interface AppState {
   auditLog: AuditEntry[]
 
   selectedCaseId: string | null
+  // Case detail page — when set, the detail view replaces the board layout
+  detailCaseId: string | null
   filters: CaseFilters
 
   // Modal state for skip-stage
@@ -45,6 +47,8 @@ interface AppState {
 
   // ─── Actions ────────────────────────────────────────────────────────────
   selectCase: (id: string | null) => void
+  openCaseDetail: (id: string) => void
+  closeCaseDetail: () => void
   setFilter: <K extends keyof CaseFilters>(key: K, value: CaseFilters[K]) => void
   resetFilters: () => void
 
@@ -79,6 +83,7 @@ export const useStore = create<AppState>()(
     tasks: INITIAL_TASKS,
     auditLog: INITIAL_AUDIT,
     selectedCaseId: null,
+    detailCaseId: null,
     filters: { ...DEFAULT_FILTERS },
     skipModal: { open: false, caseId: null, targetStage: null },
     auditDrawerOpen: false,
@@ -135,6 +140,20 @@ export const useStore = create<AppState>()(
     selectCase(id) {
       set((s) => {
         s.selectedCaseId = s.selectedCaseId === id ? null : id
+      })
+    },
+
+    openCaseDetail(id) {
+      set((s) => {
+        s.detailCaseId = id
+        // Keep the task board filtered to this case for when we navigate back
+        s.selectedCaseId = id
+      })
+    },
+
+    closeCaseDetail() {
+      set((s) => {
+        s.detailCaseId = null
       })
     },
 
