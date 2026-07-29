@@ -3,11 +3,13 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* Cream canvas — almost white, very slightly red */
-    --cream:        #faf4f2;
-    --cream-panel:  #fffcfb;
-    --cream-sunk:   #f6ece9;
+  /* ─── Day mode: cream canvas, almost white with a very slight red hue ───── */
+  :root, :root[data-theme='day'] {
+    --canvas:       #faf4f2;
+    --panel:        linear-gradient(180deg, #fffcfb 0%, #f9f1ef 100%);
+    --panel-solid:  #fffcfb;
+    --sunk:         #f6ece9;
+    --header-bg:    linear-gradient(90deg, #fffcfb 0%, #fdf6f4 40%, #fdf6f4 60%, #fffcfb 100%);
 
     --line:         rgba(140, 90, 80, 0.14);
     --line-soft:    rgba(140, 90, 80, 0.09);
@@ -16,6 +18,66 @@
     --ink-muted:    #6b5a55;
     --ink-faint:    #9b8983;
     --ink-ghost:    #bcaba5;
+
+    /* Cards follow the cream scheme in day mode */
+    --card-bg:           linear-gradient(135deg, #fffcfb 0%, #fdf6f4 100%);
+    --card-border:       rgba(140, 90, 80, 0.14);
+    --card-hover-border: rgba(140, 90, 80, 0.30);
+    --card-shadow:       0 4px 18px rgba(120, 70, 60, 0.10), 0 0 0 1px rgba(140, 90, 80, 0.06);
+    --card-selected:     linear-gradient(135deg, #eceeff 0%, #f5f3ff 100%);
+
+    --panel-shadow: 0 4px 20px rgba(120, 70, 60, 0.07), inset 0 1px 0 rgba(255,255,255,0.7);
+    --pill-bg:      rgba(140, 90, 80, 0.10);
+    --hover-wash:   rgba(140, 90, 80, 0.08);
+    --scrim:        rgba(40, 25, 20, 0.35);
+    --scroll-thumb: #dcc9c3;
+    --scroll-thumb-hover: #c9b2ab;
+    --header-shadow: 0 1px 16px rgba(120, 70, 60, 0.06);
+    --drop-wash:    #f1eeff;
+
+    --surface-0: #fdfaf9;
+    --surface-1: #fffcfb;
+    --surface-2: #fdf8f7;
+    --surface-3: #f8efec;
+    --surface-4: #f2e4e0;
+  }
+
+  /* ─── Night mode: the original near-black canvas ────────────────────────── */
+  :root[data-theme='night'] {
+    --canvas:       #0b0e18;
+    --panel:        linear-gradient(180deg, #1a2030 0%, #161b28 100%);
+    --panel-solid:  #181c27;
+    --sunk:         rgba(255,255,255,0.02);
+    --header-bg:    linear-gradient(90deg, #0e1422 0%, #141c30 40%, #141c30 60%, #0e1422 100%);
+
+    --line:         rgba(255,255,255,0.06);
+    --line-soft:    rgba(255,255,255,0.05);
+
+    --ink:          #e5e7eb;
+    --ink-muted:    #8d94a3;
+    --ink-faint:    #6b7280;
+    --ink-ghost:    #4b5563;
+
+    --card-bg:           linear-gradient(135deg, #1e2538 0%, #1a2030 100%);
+    --card-border:       rgba(255,255,255,0.05);
+    --card-hover-border: rgba(255,255,255,0.12);
+    --card-shadow:       0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+    --card-selected:     linear-gradient(135deg, #1e2845 0%, #1a2035 100%);
+
+    --panel-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+    --pill-bg:      rgba(255,255,255,0.06);
+    --hover-wash:   rgba(255,255,255,0.06);
+    --scrim:        rgba(0,0,0,0.6);
+    --scroll-thumb: #2d3550;
+    --scroll-thumb-hover: #3d4770;
+    --header-shadow: 0 1px 20px rgba(0,0,0,0.5), 0 0 40px rgba(99,102,241,0.05);
+    --drop-wash:    #1b2142;
+
+    --surface-0: #0f1117;
+    --surface-1: #181c27;
+    --surface-2: #1e2333;
+    --surface-3: #252b3b;
+    --surface-4: #2d3447;
   }
 
   html, body, #root {
@@ -24,10 +86,11 @@
   body {
     margin: 0;
     display: block;
-    background-color: var(--cream);
+    background-color: var(--canvas);
     color: var(--ink);
     font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   ::-webkit-scrollbar {
@@ -38,34 +101,39 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #dcc9c3;
+    background: var(--scroll-thumb);
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #c9b2ab;
+    background: var(--scroll-thumb-hover);
   }
 }
 
 @layer components {
   .kanban-col {
     @apply flex flex-col min-w-[270px] max-w-[270px] rounded-xl overflow-hidden;
-    background: linear-gradient(180deg, #fffcfb 0%, #f9f1ef 100%);
+    background: var(--panel);
     border: 1px solid var(--line);
-    box-shadow: 0 4px 20px rgba(120, 70, 60, 0.07), inset 0 1px 0 rgba(255,255,255,0.7);
+    box-shadow: var(--panel-shadow);
   }
   .kanban-col-header {
     @apply flex items-center justify-between px-3 py-2.5;
     border-bottom: 1px solid var(--line-soft);
   }
   .card-base {
-    @apply rounded-lg border border-white/5 p-3 cursor-pointer;
-    background: linear-gradient(135deg, #1e2538 0%, #1a2030 100%);
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    @apply rounded-lg p-3 cursor-pointer;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s, background 0.2s;
   }
   .card-base:hover {
-    border-color: rgba(255,255,255,0.12);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+    border-color: var(--card-hover-border);
+    box-shadow: var(--card-shadow);
     transform: translateY(-1px);
+  }
+  /* Selected case card */
+  .card-selected {
+    background: var(--card-selected);
   }
   /* Health-colored left border variants */
   .card-health-green {
@@ -104,7 +172,7 @@
   }
   .btn-ghost:hover {
     color: var(--ink);
-    background: rgba(140, 90, 80, 0.08);
+    background: var(--hover-wash);
   }
   .btn-primary {
     @apply btn text-white;
@@ -118,21 +186,21 @@
   .filter-select {
     @apply border text-sm rounded-lg px-2.5 py-1.5 focus:outline-none;
     color: var(--ink);
-    background: #fffcfb;
+    background: var(--panel-solid);
     border-color: var(--line);
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, background 0.2s;
   }
   .filter-select::placeholder {
     color: var(--ink-ghost);
   }
   .filter-select:focus {
     border-color: rgba(99,102,241,0.5);
-    background: #ffffff;
+    background: var(--surface-2);
   }
   /* Stat card in header */
   .stat-card {
     @apply flex flex-col items-center justify-center rounded-lg px-3 py-1.5;
-    background: #fffcfb;
+    background: var(--panel-solid);
     border: 1px solid var(--line);
     min-width: 72px;
   }

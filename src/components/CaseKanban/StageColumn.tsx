@@ -47,7 +47,7 @@ export function StageColumn({ stage, cases, selectedCaseId }: Props) {
       onDrop={handleDrop}
       style={
         dragOver
-          ? { borderColor: 'rgba(99,102,241,0.55)', background: '#f4f0ff' }
+          ? { borderColor: 'rgba(99,102,241,0.55)', background: 'var(--drop-wash)' }
           : undefined
       }
     >
@@ -64,7 +64,7 @@ export function StageColumn({ stage, cases, selectedCaseId }: Props) {
         </div>
         <span
           className={`text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${stage.textColor}`}
-          style={{ background: 'rgba(140, 90, 80, 0.10)' }}
+          style={{ background: 'var(--pill-bg)' }}
         >
           {cases.length}
         </span>

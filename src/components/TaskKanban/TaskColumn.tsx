@@ -13,11 +13,11 @@ interface ColumnDef {
 
 export const TASK_COLUMNS: ColumnDef[] = [
   { id: 'backlog',     label: 'Backlog',     color: 'bg-gray-500',    textColor: 'text-ink-muted',    accentBg: 'bg-gray-500/10' },
-  { id: 'in_progress', label: 'In Progress', color: 'bg-blue-500',    textColor: 'text-blue-600',    accentBg: 'bg-blue-500/10' },
-  { id: 'waiting',    label: 'Waiting',     color: 'bg-amber-500',   textColor: 'text-amber-600',   accentBg: 'bg-amber-500/10' },
-  { id: 'review',     label: 'Review',      color: 'bg-violet-500',  textColor: 'text-violet-600',  accentBg: 'bg-violet-500/10' },
-  { id: 'blocked',    label: 'Blocked',     color: 'bg-red-500',     textColor: 'text-red-600',     accentBg: 'bg-red-500/10' },
-  { id: 'done',       label: 'Done',        color: 'bg-emerald-500', textColor: 'text-emerald-600', accentBg: 'bg-emerald-500/10' },
+  { id: 'in_progress', label: 'In Progress', color: 'bg-blue-500',    textColor: 'text-blue-600 dark:text-blue-400',    accentBg: 'bg-blue-500/10' },
+  { id: 'waiting',    label: 'Waiting',     color: 'bg-amber-500',   textColor: 'text-amber-600 dark:text-amber-400',   accentBg: 'bg-amber-500/10' },
+  { id: 'review',     label: 'Review',      color: 'bg-violet-500',  textColor: 'text-violet-600 dark:text-violet-400',  accentBg: 'bg-violet-500/10' },
+  { id: 'blocked',    label: 'Blocked',     color: 'bg-red-500',     textColor: 'text-red-600 dark:text-red-400',     accentBg: 'bg-red-500/10' },
+  { id: 'done',       label: 'Done',        color: 'bg-emerald-500', textColor: 'text-emerald-600 dark:text-emerald-400', accentBg: 'bg-emerald-500/10' },
 ]
 
 interface Props {
@@ -62,7 +62,7 @@ export function TaskColumn({ col, tasks }: Props) {
       onDrop={handleDrop}
       style={
         dragOver
-          ? { borderColor: 'rgba(99,102,241,0.55)', background: '#f4f0ff' }
+          ? { borderColor: 'rgba(99,102,241,0.55)', background: 'var(--drop-wash)' }
           : undefined
       }
     >
@@ -79,7 +79,7 @@ export function TaskColumn({ col, tasks }: Props) {
         </div>
         <span
           className={`text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${col.textColor}`}
-          style={{ background: 'rgba(140, 90, 80, 0.10)' }}
+          style={{ background: 'var(--pill-bg)' }}
         >
           {tasks.length}
         </span>

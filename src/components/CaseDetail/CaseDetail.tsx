@@ -36,13 +36,13 @@ function MetricTile({
   label: string
   warn?: boolean
 }) {
-  const color = warn && value > 0 ? 'text-red-600' : 'text-ink'
+  const color = warn && value > 0 ? 'text-red-600 dark:text-red-400' : 'text-ink'
   const iconColor = warn && value > 0 ? 'text-red-500' : 'text-ink-muted'
   return (
     <div
       className="flex flex-col gap-1 rounded-lg px-4 py-3"
       style={{
-        background: '#fffcfb',
+        background: 'var(--panel-solid)',
         border: '1px solid var(--line)',
       }}
     >
@@ -68,9 +68,9 @@ function Section({
     <section
       className="rounded-xl overflow-hidden"
       style={{
-        background: 'linear-gradient(180deg, #fffcfb 0%, #f9f1ef 100%)',
+        background: 'var(--panel)',
         border: '1px solid var(--line)',
-        boxShadow: '0 4px 20px rgba(120, 70, 60, 0.07), inset 0 1px 0 rgba(255,255,255,0.7)',
+        boxShadow: 'var(--panel-shadow)',
       }}
     >
       <div
@@ -183,7 +183,7 @@ function StepChecklist({
                     <span
                       className={`text-[11px] ${
                         subActive
-                          ? 'text-indigo-600 font-medium'
+                          ? 'text-indigo-600 dark:text-indigo-300 font-medium'
                           : subDone
                           ? 'text-ink-muted'
                           : 'text-ink-faint'
@@ -192,7 +192,7 @@ function StepChecklist({
                       {ss.label}
                     </span>
                     {subActive && (
-                      <span className="badge bg-indigo-100 text-indigo-700 text-[9px]">
+                      <span className="badge bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-[9px]">
                         Current
                       </span>
                     )}
@@ -218,7 +218,7 @@ function TaskRow({ task }: { task: Task }) {
     <div
       className="flex items-center gap-3 px-3 py-2 rounded-lg"
       style={{
-        background: 'var(--cream-sunk)',
+        background: 'var(--sunk)',
         border: '1px solid var(--line-soft)',
       }}
     >
@@ -237,7 +237,7 @@ function TaskRow({ task }: { task: Task }) {
           {task.dueDate && (
             <>
               {' · '}
-              <span className={overdue ? 'text-red-600' : undefined}>
+              <span className={overdue ? 'text-red-600 dark:text-red-400' : undefined}>
                 due {format(parseISO(task.dueDate), 'MMM d')}
               </span>
             </>
@@ -281,9 +281,9 @@ function ActivityRow({ entry }: { entry: AuditEntry }) {
           }`}
         >
           {isSkip ? (
-            <SkipForward size={11} className="text-amber-600" />
+            <SkipForward size={11} className="text-amber-600 dark:text-amber-400" />
           ) : (
-            <ArrowRight size={11} className="text-blue-600" />
+            <ArrowRight size={11} className="text-blue-600 dark:text-blue-400" />
           )}
         </div>
         <div className="w-px flex-1 bg-[var(--line)] mt-1" />
@@ -301,10 +301,10 @@ function ActivityRow({ entry }: { entry: AuditEntry }) {
           </div>
         )}
         {entry.reason && (
-          <div className="bg-amber-50 border border-amber-300/70 rounded p-1.5 mt-1">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300/70 dark:border-amber-500/20 rounded p-1.5 mt-1">
             <div className="flex items-start gap-1.5">
-              <FileText size={9} className="text-amber-600 mt-0.5 flex-shrink-0" />
-              <p className="text-[10px] text-amber-800">{entry.reason}</p>
+              <FileText size={9} className="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <p className="text-[10px] text-amber-800 dark:text-amber-200/80">{entry.reason}</p>
             </div>
           </div>
         )}
@@ -471,7 +471,7 @@ export function CaseDetail() {
                   <dt className="text-[11px] text-ink-muted w-28 flex-shrink-0">Tags</dt>
                   <dd className="flex flex-wrap gap-1">
                     {c.tags.map((t) => (
-                      <span key={t} className="badge bg-[var(--cream-sunk)] border border-[var(--line-soft)] text-ink-muted text-[10px]">
+                      <span key={t} className="badge bg-[var(--sunk)] border border-[var(--line-soft)] text-ink-muted text-[10px]">
                         {t}
                       </span>
                     ))}
@@ -492,7 +492,7 @@ export function CaseDetail() {
                 {entries.length > 5 && (
                   <button
                     onClick={() => openAuditDrawer(c.id)}
-                    className="text-[11px] text-indigo-600 hover:text-indigo-700 self-start mt-1"
+                    className="text-[11px] text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 self-start mt-1"
                   >
                     View all {entries.length} entries →
                   </button>

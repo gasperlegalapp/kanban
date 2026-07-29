@@ -17,8 +17,8 @@ function EntryRow({ entry }: { entry: AuditEntry }) {
           isSkip ? 'bg-amber-500/20 border border-amber-500/40' : 'bg-blue-500/15 border border-blue-500/30'
         }`}>
           {isSkip
-            ? <SkipForward size={13} className="text-amber-600" />
-            : <ArrowRight size={13} className="text-blue-600" />
+            ? <SkipForward size={13} className="text-amber-600 dark:text-amber-400" />
+            : <ArrowRight size={13} className="text-blue-600 dark:text-blue-400" />
           }
         </div>
         <div className="w-px flex-1 bg-[var(--line)] mt-1" />
@@ -29,7 +29,7 @@ function EntryRow({ entry }: { entry: AuditEntry }) {
         <div className="flex items-start justify-between gap-2 mb-1">
           <p className="text-xs font-medium text-ink">{entry.description}</p>
           {isSkip && (
-            <span className="badge bg-amber-100 text-amber-600 flex-shrink-0">Skip</span>
+            <span className="badge bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex-shrink-0">Skip</span>
           )}
         </div>
 
@@ -42,10 +42,10 @@ function EntryRow({ entry }: { entry: AuditEntry }) {
         )}
 
         {entry.reason && (
-          <div className="bg-amber-50 border border-amber-300/70 rounded p-2 mb-1">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300/70 dark:border-amber-500/20 rounded p-2 mb-1">
             <div className="flex items-start gap-1.5">
-              <FileText size={10} className="text-amber-600 mt-0.5 flex-shrink-0" />
-              <p className="text-[11px] text-amber-800">{entry.reason}</p>
+              <FileText size={10} className="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <p className="text-[11px] text-amber-800 dark:text-amber-200/80">{entry.reason}</p>
             </div>
           </div>
         )}

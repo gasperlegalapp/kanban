@@ -1,23 +1,28 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  // Night mode is opt-in via <html data-theme="night">, set by the theme toggle
+  darkMode: ['selector', '[data-theme="night"]'],
   theme: {
     extend: {
       colors: {
-        // Cream ramp — near-white with a very slight red hue
+        // Both ramps flip with the theme — see the :root blocks in index.css
         surface: {
-          0: '#fdfaf9',
-          1: '#fffcfb',
-          2: '#fdf8f7',
-          3: '#f8efec',
-          4: '#f2e4e0',
+          0: 'var(--surface-0)',
+          1: 'var(--surface-1)',
+          2: 'var(--surface-2)',
+          3: 'var(--surface-3)',
+          4: 'var(--surface-4)',
         },
-        // Warm neutrals for text on cream surfaces
         ink: {
-          DEFAULT: '#2a211f',
-          muted: '#6b5a55',
-          faint: '#9b8983',
-          ghost: '#bcaba5',
+          DEFAULT: 'var(--ink)',
+          muted: 'var(--ink-muted)',
+          faint: 'var(--ink-faint)',
+          ghost: 'var(--ink-ghost)',
+        },
+        line: {
+          DEFAULT: 'var(--line)',
+          soft: 'var(--line-soft)',
         },
         accent: {
           blue: '#3b82f6',

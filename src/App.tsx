@@ -4,7 +4,7 @@ import { TaskKanban } from './components/TaskKanban/TaskKanban'
 import { SkipStageModal } from './components/SkipStageModal'
 import { AuditDrawer } from './components/AuditDrawer'
 import { CaseDetail } from './components/CaseDetail/CaseDetail'
-import { Scale, AlertTriangle, CheckSquare, Briefcase } from 'lucide-react'
+import { Scale, AlertTriangle, CheckSquare, Briefcase, Sun, Moon } from 'lucide-react'
 
 function Stat({
   label,
@@ -19,11 +19,11 @@ function Stat({
 }) {
   const valueColor =
     highlight === 'red'
-      ? 'text-red-600'
+      ? 'text-red-600 dark:text-red-400'
       : highlight === 'amber'
-      ? 'text-amber-600'
+      ? 'text-amber-600 dark:text-amber-400'
       : highlight === 'blue'
-      ? 'text-blue-600'
+      ? 'text-blue-600 dark:text-blue-400'
       : 'text-ink'
 
   const iconColor =
@@ -46,6 +46,22 @@ function Stat({
   )
 }
 
+function ThemeToggle() {
+  const { theme, toggleTheme } = useStore()
+  const goingTo = theme === 'day' ? 'night' : 'day'
+
+  return (
+    <button
+      onClick={toggleTheme}
+      className="btn-ghost p-2 mr-1"
+      title={`Switch to ${goingTo} mode`}
+      aria-label={`Switch to ${goingTo} mode`}
+    >
+      {theme === 'day' ? <Moon size={15} /> : <Sun size={15} />}
+    </button>
+  )
+}
+
 function Header() {
   const { cases, tasks } = useStore()
   const now = new Date()
@@ -59,9 +75,9 @@ function Header() {
     <header
       className="flex items-center justify-between px-5 py-3 flex-shrink-0"
       style={{
-        background: 'linear-gradient(90deg, #fffcfb 0%, #fdf6f4 40%, #fdf6f4 60%, #fffcfb 100%)',
-        borderBottom: '1px solid rgba(140, 90, 80, 0.14)',
-        boxShadow: '0 1px 16px rgba(120, 70, 60, 0.06)',
+        background: 'var(--header-bg)',
+        borderBottom: '1px solid var(--line)',
+        boxShadow: 'var(--header-shadow)',
       }}
     >
       {/* Brand */}
@@ -79,12 +95,13 @@ function Header() {
           <h1 className="text-sm font-bold text-ink leading-tight tracking-wide">
             Case Control
           </h1>
-          <p className="text-[10px] text-indigo-500/80 leading-tight">Law Firm Workflow Dashboard</p>
+          <p className="text-[10px] text-indigo-500/80 dark:text-indigo-400/70 leading-tight">Law Firm Workflow Dashboard</p>
         </div>
       </div>
 
       {/* Global stats */}
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         <Stat label="Active Cases" value={activeCases} icon={Briefcase} highlight="blue" />
         <Stat
           label="Overdue Tasks"
@@ -126,7 +143,7 @@ function App() {
   const detailCaseId = useStore((s) => s.detailCaseId)
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: 'var(--cream)' }}>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: 'var(--canvas)' }}>
       <Header />
 
       {/* Case detail page replaces the boards when a case is opened */}

@@ -17,7 +17,7 @@ function Stat({ icon: Icon, value, label, warn }: {
   warn?: boolean
 }) {
   return (
-    <div className={`flex flex-col items-center gap-0.5 ${warn && value > 0 ? 'text-red-400' : 'text-gray-500'}`}>
+    <div className={`flex flex-col items-center gap-0.5 ${warn && value > 0 ? 'text-red-600 dark:text-red-400' : 'text-ink-muted'}`}>
       <div className="flex items-center gap-1">
         <Icon size={10} />
         <span className="text-xs font-bold tabular-nums">{value}</span>
@@ -49,9 +49,8 @@ export function CaseCard({ c, selected }: Props) {
   return (
     <div
       className={`card-base group relative ${healthBorderClass[m.health]} ${
-        selected ? 'ring-1 ring-indigo-500/40' : ''
+        selected ? 'ring-1 ring-indigo-500/40 card-selected' : ''
       }`}
-      style={selected ? { background: 'linear-gradient(135deg, #1e2845 0%, #1a2035 100%)' } : undefined}
       onClick={() => openCaseDetail(c.id)}
       title="Open case"
     >
@@ -59,19 +58,19 @@ export function CaseCard({ c, selected }: Props) {
       <div className="flex items-start justify-between gap-1 mb-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <HealthDot health={m.health} />
-          <span className="text-[10px] text-gray-600 font-mono flex-shrink-0">{c.caseNumber}</span>
+          <span className="text-[10px] text-ink-faint font-mono flex-shrink-0">{c.caseNumber}</span>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={(e) => { e.stopPropagation(); selectCase(c.id) }}
-            className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-indigo-400 transition-all"
+            className="opacity-0 group-hover:opacity-100 text-ink-faint hover:text-indigo-400 transition-all"
             title={selected ? 'Clear task filter' : 'Filter task board to this case'}
           >
             <Filter size={12} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); openAuditDrawer(c.id) }}
-            className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-indigo-400 transition-all"
+            className="opacity-0 group-hover:opacity-100 text-ink-faint hover:text-indigo-400 transition-all"
             title="View audit log"
           >
             <History size={12} />
@@ -80,18 +79,18 @@ export function CaseCard({ c, selected }: Props) {
       </div>
 
       {/* Case title */}
-      <p className="text-sm font-semibold text-gray-100 leading-tight mb-0.5 line-clamp-2">
+      <p className="text-sm font-semibold text-ink leading-tight mb-0.5 line-clamp-2">
         {c.title}
       </p>
-      <p className="text-[11px] text-gray-500 mb-2 truncate">{c.client}</p>
+      <p className="text-[11px] text-ink-muted mb-2 truncate">{c.client}</p>
 
       {/* Step breadcrumb */}
-      <div className="flex items-center gap-1 text-[10px] text-gray-600 mb-2.5 min-w-0">
+      <div className="flex items-center gap-1 text-[10px] text-ink-faint mb-2.5 min-w-0">
         <span className="truncate">{currentStep?.label ?? c.stepId}</span>
         {currentSubStep && (
           <>
-            <ChevronRight size={9} className="flex-shrink-0 text-gray-700" />
-            <span className="truncate text-gray-500">{currentSubStep.label}</span>
+            <ChevronRight size={9} className="flex-shrink-0 text-ink-ghost" />
+            <span className="truncate text-ink-muted">{currentSubStep.label}</span>
           </>
         )}
       </div>
@@ -99,7 +98,7 @@ export function CaseCard({ c, selected }: Props) {
       {/* Metrics row */}
       <div
         className="flex items-center justify-between pt-2"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+        style={{ borderTop: '1px solid var(--line-soft)' }}
       >
         <div className="flex items-center gap-3">
           <Stat icon={Clock} value={m.daysInStage} label="days" warn={m.daysInStage >= (stage?.stuckThresholdDays ?? 999)} />
@@ -121,7 +120,7 @@ export function CaseCard({ c, selected }: Props) {
                 moveCase(c.id, nextStage.id)
               }
             }}
-            className="opacity-0 group-hover:opacity-100 text-[10px] text-indigo-300 hover:text-indigo-200 px-1.5 py-0.5 rounded transition-all flex-shrink-0"
+            className="opacity-0 group-hover:opacity-100 text-[10px] text-indigo-700 hover:text-indigo-800 dark:text-indigo-300 dark:hover:text-indigo-200 px-1.5 py-0.5 rounded transition-all flex-shrink-0"
             style={{ background: 'rgba(99,102,241,0.15)' }}
             title={`Advance to ${nextStage.label}`}
           >
@@ -133,10 +132,10 @@ export function CaseCard({ c, selected }: Props) {
       {/* Owner + last activity */}
       <div
         className="flex items-center justify-between mt-1.5 pt-1.5"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+        style={{ borderTop: '1px solid var(--line-soft)' }}
       >
-        <span className="text-[10px] text-gray-600 truncate">{c.owner}</span>
-        <span className="text-[10px] text-gray-700 flex-shrink-0">
+        <span className="text-[10px] text-ink-faint truncate">{c.owner}</span>
+        <span className="text-[10px] text-ink-ghost flex-shrink-0">
           {formatDistanceToNow(new Date(c.lastActivity), { addSuffix: true })}
         </span>
       </div>

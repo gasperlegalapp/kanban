@@ -5,6 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Case Control — Law Firm Dashboard</title>
+    <script>
+      // Resolve the theme before first paint so night mode never flashes cream.
+      // Must stay in sync with initialTheme() in src/store/useStore.ts.
+      (function () {
+        try {
+          var saved = localStorage.getItem('caseControl.theme')
+          document.documentElement.dataset.theme =
+            saved === 'day' || saved === 'night'
+              ? saved
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'night'
+              : 'day'
+        } catch (e) {
+          document.documentElement.dataset.theme = 'day'
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

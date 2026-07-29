@@ -23,6 +23,7 @@ interface AppState {
   tasks: Task[]
   auditLog: AuditEntry[]
 
+  theme: Theme
   selectedCaseId: string | null
   // Case detail page — when set, the detail view replaces the board layout
   detailCaseId: string | null
@@ -46,6 +47,9 @@ interface AppState {
   getAllOwners: () => string[]
 
   // ─── Actions ────────────────────────────────────────────────────────────
+  setTheme: (theme: Theme) => void
+  toggleTheme: () => void
+
   selectCase: (id: string | null) => void
   openCaseDetail: (id: string) => void
   closeCaseDetail: () => void
@@ -65,6 +69,33 @@ interface AppState {
   closeAuditDrawer: () => void
 }
 
+// ─── Theme ───────────────────────────────────────────────────────────────────
+
+export type Theme = 'day' | 'night'
+
+const THEME_KEY = 'caseControl.theme'
+
+/** Day unless the user has previously chosen night, or their OS prefers dark. */
+function initialTheme(): Theme {
+  if (typeof window === 'undefined') return 'day'
+  const saved = window.localStorage.getItem(THEME_KEY)
+  if (saved === 'day' || saved === 'night') return saved
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'night' : 'day'
+}
+
+/** Drives both the CSS variable blocks and Tailwind's `dark:` variant. */
+function applyTheme(theme: Theme, persist = true) {
+  if (typeof document === 'undefined') return
+  document.documentElement.dataset.theme = theme
+  // Only an explicit choice is stored, so an unset OS preference stays live
+  if (!persist) return
+  try {
+    window.localStorage.setItem(THEME_KEY, theme)
+  } catch {
+    // Private browsing or blocked storage — the theme still applies for this session
+  }
+}
+
 // ─── Default filters ─────────────────────────────────────────────────────────
 
 const DEFAULT_FILTERS: CaseFilters = {
@@ -82,6 +113,7 @@ export const useStore = create<AppState>()(
     cases: INITIAL_CASES,
     tasks: INITIAL_TASKS,
     auditLog: INITIAL_AUDIT,
+    theme: initialTheme(),
     selectedCaseId: null,
     detailCaseId: null,
     filters: { ...DEFAULT_FILTERS },
@@ -136,6 +168,21 @@ export const useStore = create<AppState>()(
     },
 
     // ─── Actions ──────────────────────────────────────────────────────────
+
+    setTheme(theme) {
+      applyTheme(theme)
+      set((s) => {
+        s.theme = theme
+      })
+    },
+
+    toggleTheme() {
+      const next: Theme = get().theme === 'day' ? 'night' : 'day'
+      applyTheme(next)
+      set((s) => {
+        s.theme = next
+      })
+    },
 
     selectCase(id) {
       set((s) => {
@@ -298,3 +345,8 @@ export const useStore = create<AppState>()(
     },
   })),
 )
+
+// Reflect the resolved theme on <html> as soon as the store module loads.
+// index.html sets this pre-paint too; this keeps them in sync without
+// persisting a choice the user has not actually made.
+applyTheme(useStore.getState().theme, false)

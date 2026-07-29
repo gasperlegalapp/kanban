@@ -48,7 +48,7 @@ export function SkipStageModal() {
         <div className="flex items-start justify-between p-4 border-b border-[var(--line-soft)]">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <AlertTriangle size={16} className="text-amber-600" />
+              <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400" />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-ink">Skip Workflow Stage</h3>
@@ -92,7 +92,7 @@ export function SkipStageModal() {
           {/* Reason input */}
           <div>
             <label className="block text-xs font-medium text-ink-muted mb-1.5">
-              Reason for skipping <span className="text-red-600">*</span>
+              Reason for skipping <span className="text-red-600 dark:text-red-400">*</span>
             </label>
             <textarea
               value={reason}
@@ -102,7 +102,7 @@ export function SkipStageModal() {
               className="w-full bg-surface-3 border border-[var(--line)] rounded-lg p-2.5 text-sm text-ink placeholder-ink-ghost resize-none focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30"
             />
             {error && (
-              <p className="text-xs text-red-600 mt-1">{error}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{error}</p>
             )}
             <p className="text-[10px] text-ink-faint mt-1">
               {reason.length} characters
