@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #eef1f5;
+  --color-surface: #ffffff;
+  --color-surface-2: #f7f8fa;
+  --color-line: #dfe3ea;
+  --color-line-strong: #c9cfd9;
+  --color-ink: #1b2432;
+  --color-ink-2: #3b4656;
+  --color-muted: #6b7482;
+  --color-faint: #9aa3b2;
+  --color-brand: #1f3b63;
+  --color-brand-2: #2b5286;
+  --color-brand-soft: #e8eef7;
+  --color-accent: #2563eb;
+  --color-ok: #10b981;
+  --color-warn: #f59e0b;
+  --color-bad: #ef4444;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.1);
+  --shadow-card-hover: 0 4px 12px rgba(16, 24, 40, 0.12);
+  --shadow-pop: 0 12px 32px rgba(16, 24, 40, 0.18);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c3c9d4 transparent;
+}
+*::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #c3c9d4;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink-2 shadow-xs transition hover:bg-surface-2 hover:border-line-strong disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap;
+  }
+  .btn-sm {
+    @apply px-2 py-1 text-xs;
+  }
+  .btn-primary {
+    @apply border-brand bg-brand text-white hover:bg-brand-2 hover:border-brand-2;
+  }
+  .btn-danger {
+    @apply border-bad/60 text-bad hover:bg-bad/5;
+  }
+  .btn-ghost {
+    @apply border-transparent bg-transparent shadow-none hover:bg-black/5;
+  }
+  .input,
+  .select,
+  .textarea {
+    @apply w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent disabled:bg-surface-2;
+  }
+  .textarea {
+    @apply min-h-24 leading-relaxed;
+  }
+  .label {
+    @apply block text-xs font-semibold uppercase tracking-wide text-muted mb-1;
+  }
+  .card {
+    @apply rounded-lg border border-line bg-surface shadow-card;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-4 whitespace-nowrap;
+  }
+  .panel-title {
+    @apply text-sm font-semibold uppercase tracking-wide text-muted;
+  }
+  .kanban-col-header {
+    @apply flex items-center justify-between px-2.5 py-2 text-[11px] font-bold uppercase tracking-wider;
+  }
+  .drop-target {
+    @apply outline-2 outline-dashed outline-accent/50 bg-accent/5;
+  }
+}
