@@ -69,7 +69,7 @@ export function TaskBoard({
   const template = `96px repeat(${cols.length}, minmax(200px, 1fr))`;
 
   return (
-    <DndContext sensors={sensors} onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))} onDragEnd={handleDragEnd}>
+    <DndContext id="task-board" sensors={sensors} onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))} onDragEnd={handleDragEnd}>
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="grid min-w-max gap-x-1.5" style={{ gridTemplateColumns: template }}>
           <div className="sticky left-0 top-0 z-30 bg-canvas" />

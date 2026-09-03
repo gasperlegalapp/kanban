@@ -81,7 +81,7 @@ export function CaseBoard({
   const columnTemplate = `112px repeat(${leaves.length}, 236px)`;
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext id="case-board" sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="grid min-w-max gap-x-1.5" style={{ gridTemplateColumns: columnTemplate }}>
           {/* Row 1: phase groups */}
