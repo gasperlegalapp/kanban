@@ -76,12 +76,12 @@ async function sendInvite(email: string, fullName: string): Promise<boolean> {
   const origin = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
   const { error } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: fullName },
-    redirectTo: `${origin}/auth/callback?next=/account`,
+    redirectTo: `${origin}/auth/confirm?next=/account`,
   });
   if (error) {
     if (/already/i.test(error.message)) {
       // Existing auth user: send a password reset instead so they can sign in.
-      const { error: e2 } = await admin.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/auth/callback?next=/account` });
+      const { error: e2 } = await admin.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/auth/confirm?next=/account` });
       if (e2) throw new Error(e2.message);
       return true;
     }
