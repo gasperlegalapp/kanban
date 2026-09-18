@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "./schema";
@@ -39,9 +40,15 @@ export function getDb(): Promise<Db> {
   return cache.ready;
 }
 
-/** Project root: set by next.config.ts for the app, otherwise the working directory (scripts). */
+/**
+ * Project root. next.config.ts records the build-time directory; on Vercel
+ * that path does not exist at runtime, so fall back to the working directory
+ * (where traced files such as ./drizzle are placed).
+ */
 export function projectRoot(): string {
-  return process.env.CASECONTROL_ROOT || process.cwd();
+  const configured = process.env.CASECONTROL_ROOT;
+  if (configured && fs.existsSync(configured)) return configured;
+  return process.cwd();
 }
 
 async function open(): Promise<Db> {
@@ -54,11 +61,18 @@ async function open(): Promise<Db> {
       import("drizzle-orm/postgres-js/migrator"),
       import("postgres").then((m) => m.default),
     ]);
-    const client = postgres(process.env.DATABASE_URL!, { prepare: false, max: 10 });
+    // Serverless: many short-lived instances share the Supabase pooler, so
+    // keep each instance's pool tiny and release idle connections quickly.
+    const serverless = !!process.env.VERCEL;
+    const client = postgres(process.env.DATABASE_URL!, {
+      prepare: false,
+      max: serverless ? 2 : 10,
+      idle_timeout: serverless ? 10 : 60,
+      connect_timeout: 15,
+    });
     const db = drizzle(client, { schema: fullSchema, casing: "snake_case" });
     if (process.env.AUTO_MIGRATE !== "false") {
-      const { existsSync } = await import("node:fs");
-      if (existsSync(path.join(migrationsFolder, "meta", "_journal.json"))) {
+      if (fs.existsSync(path.join(migrationsFolder, "meta", "_journal.json"))) {
         await migrate(db, { migrationsFolder });
       } else {
         // Migrations are applied from a developer machine with `pnpm db:migrate`.
