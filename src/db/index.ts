@@ -61,13 +61,16 @@ async function open(): Promise<Db> {
       import("drizzle-orm/postgres-js/migrator"),
       import("postgres").then((m) => m.default),
     ]);
-    // Serverless: many short-lived instances share the Supabase pooler, so
-    // keep each instance's pool tiny and release idle connections quickly.
+    // Use the Supabase *session* pooler (port 5432). The transaction pooler
+    // (6543) stalls on parameterised queries with this driver. Session mode
+    // caps clients at 15, so on serverless every instance keeps a single
+    // connection and drops it as soon as it goes idle.
     const serverless = !!process.env.VERCEL;
     const client = postgres(process.env.DATABASE_URL!, {
       prepare: false,
-      max: serverless ? 2 : 10,
-      idle_timeout: serverless ? 10 : 60,
+      max: serverless ? 1 : 10,
+      idle_timeout: serverless ? 5 : 60,
+      max_lifetime: serverless ? 60 * 5 : undefined,
       connect_timeout: 15,
     });
     const db = drizzle(client, { schema: fullSchema, casing: "snake_case" });

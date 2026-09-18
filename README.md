@@ -59,7 +59,7 @@ The import is safe to re-run; cards already imported are skipped.
 **1. Create the database and sign-in (Supabase).** Supabase is a hosted Postgres database with built-in user sign-in and file storage; the free tier is enough for a firm this size.
 
 1. Sign up at https://supabase.com and create a project (choose a region near Ohio, e.g. US East).
-2. In *Project Settings → Database → Connection string*, copy the **Session pooler** URI. This is `DATABASE_URL`.
+2. In *Project Settings → Database → Connection string*, copy the **Session pooler** URI (port 5432). This is `DATABASE_URL`. Do not use the Transaction pooler (port 6543): it stalls with this database driver.
 3. In *Project Settings → API*, copy the *Project URL* (`NEXT_PUBLIC_SUPABASE_URL`), the *anon / publishable* key (`NEXT_PUBLIC_SUPABASE_ANON_KEY`) and the *service_role* key (`SUPABASE_SERVICE_ROLE_KEY`, keep this one secret).
 4. In *Authentication → URL Configuration*, set the Site URL to your app's address and add `https://<your-app>/auth/callback` to the redirect URLs.
 
