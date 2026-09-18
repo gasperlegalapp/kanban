@@ -1,6 +1,7 @@
 // Re-runs the configuration seed (boards, stages, lanes, case types, template
 // sets, deadline rules, users, settings). Safe to run more than once.
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
+loadEnv({ path: [".env.local", ".env"] });
 import { getDb } from "../src/db";
 import { seedConfiguration } from "../src/db/seed";
 

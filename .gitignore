@@ -41,3 +41,9 @@ next-env.d.ts
 # Client data exported from Businessmap for import. Contains confidential
 # client information and must never be committed.
 /data/
+
+.vercel
+.env*
+
+# Supabase CLI scratch files
+/supabase/.temp/

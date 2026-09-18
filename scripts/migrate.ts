@@ -1,7 +1,8 @@
 // Applies pending migrations (and the initial seed) to the configured database.
 // - With DATABASE_URL set: the Supabase/Postgres database.
 // - Without it: the local embedded PGlite database in ./.pglite.
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
+loadEnv({ path: [".env.local", ".env"] });
 import { getDb, isPostgresConfigured } from "../src/db";
 
 async function main() {

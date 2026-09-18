@@ -3,7 +3,8 @@
 //
 //   pnpm import:businessmap            # uses ./data/businessmap
 //   pnpm import:businessmap <folder>   # a different export folder
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
+loadEnv({ path: [".env.local", ".env"] });
 import fs from "node:fs";
 import path from "node:path";
 import { eq, sql } from "drizzle-orm";
