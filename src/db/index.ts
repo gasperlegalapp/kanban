@@ -57,7 +57,13 @@ async function open(): Promise<Db> {
     const client = postgres(process.env.DATABASE_URL!, { prepare: false, max: 10 });
     const db = drizzle(client, { schema: fullSchema, casing: "snake_case" });
     if (process.env.AUTO_MIGRATE !== "false") {
-      await migrate(db, { migrationsFolder });
+      const { existsSync } = await import("node:fs");
+      if (existsSync(path.join(migrationsFolder, "meta", "_journal.json"))) {
+        await migrate(db, { migrationsFolder });
+      } else {
+        // Migrations are applied from a developer machine with `pnpm db:migrate`.
+        console.warn(`Migrations folder not found at ${migrationsFolder}; skipping auto-migrate.`);
+      }
     }
     await ensureSeeded(db as unknown as Db);
     return db as unknown as Db;

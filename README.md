@@ -1,5 +1,7 @@
 # Case Control
 
+**Live app:** https://kanban-one-ashen.vercel.app (Vercel project `kanban`, Supabase project `casecontrol kanban`). Pushing to `main` deploys automatically.
+
 Case and task workflow for Gasper Legal. A two-level board, in the spirit of Businessmap, tailored to how the firm actually works:
 
 - **Case board** per practice area (Probate, Guardianship) with the firm's own phases (Start Phase → Administration → Final Phase → Closed), swimlanes (Full Estate / No Admin, Paid / Indigent) and case types.

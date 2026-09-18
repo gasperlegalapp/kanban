@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // PGlite (the embedded local database) ships WASM and Node-only code that
   // must not be bundled. The Postgres driver is excluded for the same reason.
   serverExternalPackages: ["@electric-sql/pglite", "postgres"],
+  // Ship the SQL migrations with every server function so the database can
+  // migrate itself on Vercel.
+  outputFileTracingIncludes: { "/**": ["./drizzle/**"] },
   env: {
     // Lets the database layer find ./drizzle and ./.pglite even when the dev
     // server is launched from another working directory.
