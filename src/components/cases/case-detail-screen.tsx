@@ -13,6 +13,7 @@ import { updateEvent } from "@/lib/actions/events";
 import { BOARD_TASK_LANES, HEALTH_COLORS, TASK_LANE_MAP, TASK_STATUS_MAP, WILL_STATUS_LABELS } from "@/lib/domain/constants";
 import { dueLabel, fmtDate, relTime } from "@/lib/format";
 import { useToast } from "@/components/ui/toast";
+import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { SkipReasonModal, SKIP_REASON_MIN } from "@/components/board/skip-reason-modal";
 import { NewTaskDialog } from "@/components/tasks/new-task-dialog";
 import { TaskDrawer } from "@/components/tasks/task-drawer";
@@ -22,13 +23,25 @@ import { EditCaseDialog } from "./edit-case-dialog";
 import { EventDialog } from "./event-dialog";
 import { StageStepper } from "./stage-stepper";
 
-export function CaseDetailScreen({ detail, config, isAttorney, currentUserId }: { detail: CaseDetail; config: BoardConfig; isAttorney: boolean; currentUserId: string }) {
+export function CaseDetailScreen({
+  detail,
+  config,
+  isAttorney,
+  currentUserId,
+  initialTaskId,
+}: {
+  detail: CaseDetail;
+  config: BoardConfig;
+  isAttorney: boolean;
+  currentUserId: string;
+  initialTaskId?: string | null;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
-  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [openTaskId, setOpenTaskId] = useState<string | null>(initialTaskId ?? null);
   const [eventTarget, setEventTarget] = useState<CaseEvent | null | "new">(null);
   const [pendingStage, setPendingStage] = useState<string | null>(null);
   const [comment, setComment] = useState("");
@@ -64,7 +77,8 @@ export function CaseDetailScreen({ detail, config, isAttorney, currentUserId }: 
     start(async () => {
       const res = await moveCase(detail.id, stageId, reason);
       if (!res.ok) return toast.error(res.error);
-      toast.notify(`Moved to ${leaves.find((s) => s.id === stageId)?.name}.`);
+      const n = res.data.tasksCreated;
+      toast.notify(`Moved to ${leaves.find((s) => s.id === stageId)?.name}.${n ? ` ${n} task${n === 1 ? "" : "s"} added.` : ""}`);
       router.refresh();
     });
   }
@@ -296,7 +310,14 @@ export function CaseDetailScreen({ detail, config, isAttorney, currentUserId }: 
                     </div>
                   ))}
                 <div className="flex gap-2">
-                  <textarea className="textarea min-h-16 flex-1" placeholder="Add a note for the team…" value={comment} onChange={(e) => setComment(e.target.value)} disabled={pending} />
+                  <MentionTextarea
+                    className="min-h-16"
+                    placeholder="Add a note for the team… type @ to notify someone"
+                    value={comment}
+                    onChange={setComment}
+                    people={config.people}
+                    disabled={pending}
+                  />
                   <button
                     className="btn btn-primary self-end"
                     disabled={pending || !comment.trim()}

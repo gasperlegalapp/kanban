@@ -1,6 +1,7 @@
 import { authMode } from "@/lib/auth/mode";
 import { requireUser } from "@/lib/auth/session";
 import { ROLE_LABELS } from "@/lib/domain/constants";
+import { EmailToggle } from "./email-toggle";
 import { PasswordForm } from "./password-form";
 
 export const metadata = { title: "My account" };
@@ -16,6 +17,10 @@ export default async function AccountPage() {
           {user.fullName} · {ROLE_LABELS[user.role]}
           {user.email ? ` · ${user.email}` : ""}
         </p>
+        <div className="card mb-4 p-5">
+          <h2 className="panel-title mb-3">Notifications</h2>
+          <EmailToggle initial={user.notifyEmail} hasEmail={!!user.email} />
+        </div>
         <div className="card p-5">
           <h2 className="panel-title mb-3">{supabase ? "Set your password" : "Password"}</h2>
           {supabase ? (

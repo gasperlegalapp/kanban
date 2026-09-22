@@ -108,3 +108,14 @@ export async function setOwnPassword(_prev: { error?: string; done?: boolean }, 
     return { error: err instanceof Error ? err.message : "Failed" };
   }
 }
+
+/** The signed-in person's own notification preference. */
+export async function setEmailNotifications(enabled: boolean): Promise<ActionResult> {
+  return runAction(async () => {
+    const actor = await requireActor();
+    const db = await getDb();
+    await db.update(profiles).set({ notifyEmail: !!enabled }).where(eq(profiles.id, actor.id));
+    revalidatePath("/account");
+    return undefined;
+  });
+}

@@ -8,7 +8,7 @@ import { buildStageTree } from "@/lib/data/boards";
 import { isAttorney, requireActor, requireAttorneyActor } from "@/lib/auth/session";
 import { recordAudit, touchCase } from "@/lib/services/audit";
 import { syncRuleDeadlines } from "@/lib/services/deadlines";
-import { applyDefaultTemplates, applyTemplateSet } from "@/lib/services/templates";
+import { applyDefaultTemplates, applyStageTemplates, applyTemplateSet } from "@/lib/services/templates";
 import { runAction, type ActionResult } from "./result";
 import { revalidateCase } from "./revalidate";
 
@@ -70,7 +70,10 @@ export async function createCase(raw: CaseInput): Promise<ActionResult<{ id: str
       })
       .returning();
     await recordAudit(db, actor, { caseId: row.id, kind: "case_created", description: `Case created in ${stage.name}.` });
-    if (input.applyTemplates !== false) await applyDefaultTemplates(db, actor, row);
+    if (input.applyTemplates !== false) {
+      await applyDefaultTemplates(db, actor, row);
+      await applyStageTemplates(db, actor, row, stage);
+    }
     await syncRuleDeadlines(db, actor, row);
     revalidateCase(row.boardId, row.id);
     return { id: row.id };
@@ -136,13 +139,13 @@ const SKIP_REASON_MIN = 10;
  * step backward, needs a reason and is logged as a skip. Only attorneys can
  * close or archive a case.
  */
-export async function moveCase(caseId: string, toStageId: string, reason?: string): Promise<ActionResult> {
+export async function moveCase(caseId: string, toStageId: string, reason?: string): Promise<ActionResult<{ tasksCreated: number }>> {
   return runAction(async () => {
     const actor = await requireActor();
     const db = await getDb();
     const existing = await db.query.cases.findFirst({ where: eq(cases.id, caseId) });
     if (!existing) throw new Error("Case not found.");
-    if (existing.stageId === toStageId) return undefined;
+    if (existing.stageId === toStageId) return { tasksCreated: 0 };
 
     const stageRows = await db.select().from(stages).where(eq(stages.boardId, existing.boardId));
     const { leaves } = buildStageTree(stageRows);
@@ -182,8 +185,10 @@ export async function moveCase(caseId: string, toStageId: string, reason?: strin
       toValue: to.name,
       reason: isSkip ? trimmed : null,
     });
+    // Stage-entry automation: create the tasks that belong to the new stage.
+    const tasksCreated = to.isClosed || to.isArchive ? 0 : await applyStageTemplates(db, actor, existing, to);
     revalidateCase(existing.boardId, caseId);
-    return undefined;
+    return { tasksCreated };
   });
 }
 

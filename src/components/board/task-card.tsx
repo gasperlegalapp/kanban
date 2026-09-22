@@ -1,10 +1,10 @@
 "use client";
 
 import clsx from "clsx";
-import { CheckSquare, GitBranch, User } from "lucide-react";
+import { CheckSquare, Clock, GitBranch, User } from "lucide-react";
 import type { TaskSummary } from "@/lib/data/types";
 import { PRIORITY_MAP } from "@/lib/domain/constants";
-import { dueLabel } from "@/lib/format";
+import { daysUntil, dueLabel, fmtDateShort } from "@/lib/format";
 
 export function TaskCard({
   t,
@@ -20,6 +20,7 @@ export function TaskCard({
   const due = dueLabel(t.dueDate);
   const pr = PRIORITY_MAP.get(t.priority)!;
   const done = t.status === "done";
+  const followIn = t.status === "waiting" ? daysUntil(t.followUpDate) : null;
   return (
     <div
       onClick={onOpen}
@@ -50,6 +51,11 @@ export function TaskCard({
         {t.subtaskCount > 0 && (
           <span className="flex items-center gap-1">
             <GitBranch size={11} /> {t.subtaskCount}
+          </span>
+        )}
+        {followIn !== null && (
+          <span className={clsx("flex items-center gap-1", followIn <= 0 ? "font-semibold text-amber-700" : "text-muted")} title={t.waitingOn ? `Waiting on ${t.waitingOn}` : undefined}>
+            <Clock size={11} /> {followIn <= 0 ? "Follow up now" : `Follow up ${fmtDateShort(t.followUpDate)}`}
           </span>
         )}
         {due.text && !done && (

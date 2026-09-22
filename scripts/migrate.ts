@@ -2,6 +2,7 @@
 // - With DATABASE_URL set: the Supabase/Postgres database.
 // - Without it: the local embedded PGlite database in ./.pglite.
 import { config as loadEnv } from "dotenv";
+if (process.argv.includes("--local")) process.env.USE_PGLITE = "1";
 loadEnv({ path: [".env.local", ".env"] });
 import { getDb, isPostgresConfigured } from "../src/db";
 

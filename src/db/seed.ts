@@ -54,6 +54,9 @@ export async function seedConfiguration(db: Db): Promise<void> {
       return row.id;
     };
     for (const s of board.stages) await upsertStage(s, null);
+    const stageIdByKey = new Map(
+      (await db.select({ id: stages.id, key: stages.key }).from(stages).where(eq(stages.boardId, board.id))).map((r) => [r.key, r.id]),
+    );
 
     for (const [i, lane] of board.lanes.entries()) {
       await db
@@ -85,6 +88,7 @@ export async function seedConfiguration(db: Db): Promise<void> {
           name: set.name,
           description: set.description ?? "",
           applyOnCreate: set.applyOnCreate ?? false,
+          triggerStageId: set.triggerStageKey ? (stageIdByKey.get(set.triggerStageKey) ?? null) : null,
           position: i,
         })
         .returning({ id: templateSets.id });

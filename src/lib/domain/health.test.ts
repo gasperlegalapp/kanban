@@ -110,6 +110,17 @@ describe("computeCaseMetrics", () => {
     expect(m.health).toBe("green");
   });
 
+  it("turns yellow when a waiting task's follow-up date arrives", () => {
+    const waiting = (d: Date) => ({ status: "waiting" as const, dueDate: null, followUpDate: iso(d) });
+    const later = computeCaseMetrics({ stageEnteredAt: daysAgo(1), status: "active" }, stage, [waiting(daysAgo(-2))], [], now);
+    expect(later.followUpsDue).toBe(0);
+    expect(later.health).toBe("green");
+    const due = computeCaseMetrics({ stageEnteredAt: daysAgo(1), status: "active" }, stage, [waiting(daysAgo(0))], [], now);
+    expect(due.followUpsDue).toBe(1);
+    expect(due.health).toBe("yellow");
+    expect(due.reasons).toContain("1 follow-up due");
+  });
+
   it("never flags closed cases or closed stages", () => {
     const closedStage = { ...stage, isClosed: true };
     const m = computeCaseMetrics({ stageEnteredAt: daysAgo(400), status: "active" }, closedStage, [], [], now);

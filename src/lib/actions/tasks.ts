@@ -2,11 +2,13 @@
 
 import { and, asc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { getDb } from "@/db";
-import { cases, checklistItems, tasks, type Task } from "@/db/schema";
-import { requireActor } from "@/lib/auth/session";
+import { getDb, type Db } from "@/db";
+import { cases, checklistItems, comments, profiles, tasks, type Case, type Profile, type Task } from "@/db/schema";
+import { isAttorney, requireActor, requireAttorneyActor } from "@/lib/auth/session";
 import { TASK_STATUS_MAP } from "@/lib/domain/constants";
+import { addDaysToIso, firmTodayIso } from "@/lib/dates";
 import { recordAudit, touchCase } from "@/lib/services/audit";
+import { attorneyIds, notify } from "@/lib/services/notify";
 import { runAction, type ActionResult } from "./result";
 import { revalidateCase } from "./revalidate";
 
@@ -14,6 +16,9 @@ const status = z.enum(["backlog", "requested", "in_progress", "waiting", "review
 const lane = z.enum(["core", "assets", "litigation", "social"]);
 const priority = z.enum(["low", "normal", "high", "urgent"]);
 const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
+
+/** Days until a waiting task comes back up when no follow-up date is given. */
+const DEFAULT_FOLLOW_UP_DAYS = 7;
 
 const taskInput = z.object({
   caseId: z.uuid(),
@@ -23,17 +28,141 @@ const taskInput = z.object({
   status: status.optional(),
   lane: lane.optional(),
   assigneeId: z.uuid().nullable().optional(),
+  reviewerId: z.uuid().nullable().optional(),
   dueDate: dateString.nullable().optional(),
   priority: priority.optional(),
+  waitingOn: z.string().trim().max(200).nullable().optional(),
+  followUpDate: dateString.nullable().optional(),
   checklist: z.array(z.string().trim().min(1).max(300)).optional(),
 });
 export type TaskInput = z.input<typeof taskInput>;
 
-async function loadTask(taskId: string) {
+type TaskWithCase = Task & { case: Case };
+
+async function loadTask(taskId: string): Promise<TaskWithCase> {
   const db = await getDb();
   const row = await db.query.tasks.findFirst({ where: eq(tasks.id, taskId), with: { case: true } });
   if (!row) throw new Error("Task not found.");
   return row;
+}
+
+function taskHref(t: Pick<Task, "id" | "caseId">): string {
+  return `/cases/${t.caseId}?task=${t.id}`;
+}
+
+/** Case owner if they are an attorney; otherwise no specific reviewer (all attorneys). */
+async function defaultReviewer(db: Db, c: Pick<Case, "ownerId">): Promise<string | null> {
+  if (!c.ownerId) return null;
+  const owner = await db.query.profiles.findFirst({ where: eq(profiles.id, c.ownerId) });
+  return owner?.role === "attorney" && owner.isActive ? owner.id : null;
+}
+
+const taskPatch = taskInput.omit({ caseId: true, checklist: true }).partial();
+export type TaskPatch = z.input<typeof taskPatch>;
+type ParsedPatch = z.infer<typeof taskPatch>;
+
+/**
+ * Applies a change to a task with all of its side effects: completion time,
+ * waiting follow-ups, review hand-off, audit entry and notifications.
+ */
+async function applyTaskPatch(db: Db, actor: Profile, existing: TaskWithCase, patch: ParsedPatch, opts: { note?: string } = {}): Promise<void> {
+  const changes: Partial<Task> = {};
+  const label: string[] = [];
+  for (const [k, v] of Object.entries(patch) as [keyof ParsedPatch, unknown][]) {
+    if (v === undefined) continue;
+    const value = (v === "" ? null : v) as never;
+    if ((existing as Record<string, unknown>)[k] !== value) {
+      (changes as Record<string, unknown>)[k] = value;
+      label.push(k);
+    }
+  }
+  if (!label.length) return;
+
+  const newStatus = changes.status;
+  if (newStatus) {
+    changes.completedAt = newStatus === "done" ? new Date() : null;
+    if (newStatus === "waiting") {
+      if (changes.followUpDate === undefined && !existing.followUpDate) {
+        changes.followUpDate = addDaysToIso(firmTodayIso(), DEFAULT_FOLLOW_UP_DAYS);
+      }
+    } else if (existing.status === "waiting") {
+      changes.waitingOn = null;
+      changes.followUpDate = null;
+    }
+    if (newStatus === "review") {
+      changes.reviewRequestedAt = new Date();
+      if (changes.reviewerId === undefined && !existing.reviewerId) {
+        const r = await defaultReviewer(db, existing.case);
+        if (r) changes.reviewerId = r;
+      }
+    }
+  }
+
+  await db.update(tasks).set({ ...changes, updatedAt: new Date() }).where(eq(tasks.id, existing.id));
+  await recordAudit(db, actor, {
+    caseId: existing.caseId,
+    taskId: existing.id,
+    kind: newStatus ? "task_status" : "task_updated",
+    description: newStatus
+      ? `"${existing.title}" → ${TASK_STATUS_MAP.get(newStatus)?.label ?? newStatus}.` +
+        (existing.status === "review" && newStatus === "done" ? " Approved." : "") +
+        (existing.status === "review" && newStatus !== "done" ? " Returned from review." : "") +
+        (opts.note ? ` Note: ${opts.note}` : "")
+      : `Updated "${existing.title}" (${label.join(", ")}).`,
+    fromValue: newStatus ? existing.status : null,
+    toValue: newStatus ?? null,
+  });
+  await touchCase(db, existing.caseId);
+
+  // Notifications ---------------------------------------------------------
+  const title = changes.title ?? existing.title;
+  const where = existing.case.title + (existing.case.caseNumber ? ` (${existing.case.caseNumber})` : "");
+  const href = taskHref(existing);
+  const assigneeId = changes.assigneeId !== undefined ? changes.assigneeId : existing.assigneeId;
+  const reviewerId = changes.reviewerId !== undefined ? changes.reviewerId : existing.reviewerId;
+
+  if (changes.assigneeId) {
+    const due = changes.dueDate ?? existing.dueDate;
+    await notify(db, {
+      userIds: [changes.assigneeId],
+      actorId: actor.id,
+      kind: "assigned",
+      title: `Assigned to you: ${title}`,
+      body: `${where}${due ? ` · due ${due}` : ""} · from ${actor.fullName}`,
+      href,
+    });
+  }
+  if (newStatus === "review") {
+    await notify(db, {
+      userIds: reviewerId ? [reviewerId] : await attorneyIds(db),
+      actorId: actor.id,
+      kind: "review",
+      title: `Ready for review: ${title}`,
+      body: `${where} · sent by ${actor.fullName}`,
+      href: "/review",
+    });
+  } else if (changes.reviewerId && (changes.status ?? existing.status) === "review") {
+    await notify(db, {
+      userIds: [changes.reviewerId],
+      actorId: actor.id,
+      kind: "review",
+      title: `Please review: ${title}`,
+      body: `${where} · from ${actor.fullName}`,
+      href: "/review",
+    });
+  }
+  if (existing.status === "review" && newStatus && newStatus !== "review") {
+    const approved = newStatus === "done";
+    await notify(db, {
+      userIds: [assigneeId],
+      actorId: actor.id,
+      kind: approved ? "approved" : "returned",
+      title: `${approved ? "Approved" : "Returned for changes"}: ${title}`,
+      body: `${where} · ${actor.fullName}${opts.note ? `\n${opts.note}` : ""}`,
+      href,
+    });
+  }
+  revalidateCase(existing.case.boardId, existing.caseId);
 }
 
 export async function createTask(raw: TaskInput): Promise<ActionResult<{ id: string }>> {
@@ -47,6 +176,7 @@ export async function createTask(raw: TaskInput): Promise<ActionResult<{ id: str
       .select({ max: sql<number>`coalesce(max(${tasks.position}), -1)::int` })
       .from(tasks)
       .where(eq(tasks.caseId, input.caseId));
+    const initialStatus = input.status ?? "requested";
     const [row] = await db
       .insert(tasks)
       .values({
@@ -54,14 +184,19 @@ export async function createTask(raw: TaskInput): Promise<ActionResult<{ id: str
         parentTaskId: input.parentTaskId ?? null,
         title: input.title,
         description: input.description ?? "",
-        status: input.status ?? "requested",
+        status: initialStatus,
         lane: input.lane ?? "core",
         assigneeId: input.assigneeId ?? null,
+        reviewerId: input.reviewerId ?? null,
         dueDate: input.dueDate ?? null,
         priority: input.priority ?? "normal",
+        waitingOn: initialStatus === "waiting" ? (input.waitingOn ?? null) : null,
+        followUpDate:
+          initialStatus === "waiting" ? (input.followUpDate ?? addDaysToIso(firmTodayIso(), DEFAULT_FOLLOW_UP_DAYS)) : null,
+        reviewRequestedAt: initialStatus === "review" ? new Date() : null,
         position: max + 1,
         createdBy: actor.id,
-        completedAt: input.status === "done" ? new Date() : null,
+        completedAt: initialStatus === "done" ? new Date() : null,
       })
       .returning({ id: tasks.id });
     if (input.checklist?.length) {
@@ -69,13 +204,20 @@ export async function createTask(raw: TaskInput): Promise<ActionResult<{ id: str
     }
     await recordAudit(db, actor, { caseId: input.caseId, taskId: row.id, kind: "task_created", description: `Added task "${input.title}".` });
     await touchCase(db, input.caseId);
+    if (input.assigneeId) {
+      await notify(db, {
+        userIds: [input.assigneeId],
+        actorId: actor.id,
+        kind: "assigned",
+        title: `Assigned to you: ${input.title}`,
+        body: `${parent.title}${parent.caseNumber ? ` (${parent.caseNumber})` : ""}${input.dueDate ? ` · due ${input.dueDate}` : ""} · from ${actor.fullName}`,
+        href: taskHref({ id: row.id, caseId: input.caseId }),
+      });
+    }
     revalidateCase(parent.boardId, input.caseId);
     return { id: row.id };
   });
 }
-
-const taskPatch = taskInput.omit({ caseId: true, checklist: true }).partial();
-export type TaskPatch = z.input<typeof taskPatch>;
 
 export async function updateTask(taskId: string, raw: TaskPatch): Promise<ActionResult> {
   return runAction(async () => {
@@ -83,33 +225,7 @@ export async function updateTask(taskId: string, raw: TaskPatch): Promise<Action
     const patch = taskPatch.parse(raw);
     const db = await getDb();
     const existing = await loadTask(taskId);
-    const changes: Partial<Task> = {};
-    const label: string[] = [];
-    for (const [k, v] of Object.entries(patch) as [keyof typeof patch, unknown][]) {
-      if (v === undefined) continue;
-      const value = (v === "" ? null : v) as never;
-      if ((existing as Record<string, unknown>)[k] !== value) {
-        (changes as Record<string, unknown>)[k] = value;
-        label.push(k);
-      }
-    }
-    if (!label.length) return undefined;
-    if (changes.status) {
-      changes.completedAt = changes.status === "done" ? new Date() : null;
-    }
-    await db.update(tasks).set({ ...changes, updatedAt: new Date() }).where(eq(tasks.id, taskId));
-    await recordAudit(db, actor, {
-      caseId: existing.caseId,
-      taskId,
-      kind: changes.status ? "task_status" : "task_updated",
-      description: changes.status
-        ? `"${existing.title}" → ${TASK_STATUS_MAP.get(changes.status)?.label ?? changes.status}.`
-        : `Updated "${existing.title}" (${label.join(", ")}).`,
-      fromValue: changes.status ? existing.status : null,
-      toValue: changes.status ?? null,
-    });
-    await touchCase(db, existing.caseId);
-    revalidateCase(existing.case.boardId, existing.caseId);
+    await applyTaskPatch(db, actor, existing, patch);
     return undefined;
   });
 }
@@ -117,6 +233,36 @@ export async function updateTask(taskId: string, raw: TaskPatch): Promise<Action
 /** Drag-and-drop move between status columns. */
 export async function moveTask(taskId: string, toStatus: z.infer<typeof status>): Promise<ActionResult> {
   return updateTask(taskId, { status: status.parse(toStatus) });
+}
+
+async function addTaskComment(db: Db, actor: Profile, t: TaskWithCase, body: string): Promise<void> {
+  await db.insert(comments).values({ caseId: t.caseId, taskId: t.id, authorId: actor.id, authorName: actor.fullName, body });
+}
+
+/** Attorney approves a task in review: it moves to Done. */
+export async function approveTask(taskId: string, note?: string): Promise<ActionResult> {
+  return runAction(async () => {
+    const actor = await requireAttorneyActor();
+    const db = await getDb();
+    const existing = await loadTask(taskId);
+    const clean = note?.trim() || undefined;
+    await applyTaskPatch(db, actor, existing, { status: "done" }, { note: clean });
+    if (clean) await addTaskComment(db, actor, existing, `Approved: ${clean}`);
+    return undefined;
+  });
+}
+
+/** Attorney sends a task back from review with a required note. */
+export async function returnTask(taskId: string, note: string): Promise<ActionResult> {
+  return runAction(async () => {
+    const actor = await requireAttorneyActor();
+    const clean = z.string().trim().min(3, "Say what needs to change.").max(5000).parse(note);
+    const db = await getDb();
+    const existing = await loadTask(taskId);
+    await applyTaskPatch(db, actor, existing, { status: "in_progress" }, { note: clean });
+    await addTaskComment(db, actor, existing, `Returned from review: ${clean}`);
+    return undefined;
+  });
 }
 
 export async function deleteTask(taskId: string): Promise<ActionResult> {
@@ -160,7 +306,7 @@ const checklistPatch = z.object({
 
 export async function updateChecklistItem(itemId: string, raw: z.input<typeof checklistPatch>): Promise<ActionResult> {
   return runAction(async () => {
-    await requireActor();
+    const actor = await requireActor();
     const patch = checklistPatch.parse(raw);
     const db = await getDb();
     const item = await db.query.checklistItems.findFirst({ where: eq(checklistItems.id, itemId) });
@@ -177,6 +323,17 @@ export async function updateChecklistItem(itemId: string, raw: z.input<typeof ch
       .where(eq(checklistItems.id, itemId));
     await db.update(tasks).set({ updatedAt: new Date() }).where(eq(tasks.id, item.taskId));
     await touchCase(db, existing.caseId);
+    if (patch.assigneeId && patch.assigneeId !== item.assigneeId) {
+      const due = patch.dueDate !== undefined ? patch.dueDate : item.dueDate;
+      await notify(db, {
+        userIds: [patch.assigneeId],
+        actorId: actor.id,
+        kind: "assigned",
+        title: `Checklist item for you: ${patch.text ?? item.text}`,
+        body: `${existing.title} · ${existing.case.title}${due ? ` · due ${due}` : ""} · from ${actor.fullName}`,
+        href: taskHref(existing),
+      });
+    }
     revalidateCase(existing.case.boardId, existing.caseId);
     return undefined;
   });
@@ -198,13 +355,14 @@ export async function deleteChecklistItem(itemId: string): Promise<ActionResult>
 /** Full task detail for the task drawer. */
 export async function getTaskDetail(taskId: string) {
   return runAction(async () => {
-    await requireActor();
+    const actor = await requireActor();
     const db = await getDb();
     const row = await db.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
       with: {
-        case: { columns: { id: true, title: true, boardId: true, caseNumber: true } },
+        case: { columns: { id: true, title: true, boardId: true, caseNumber: true, ownerId: true } },
         assignee: { columns: { fullName: true } },
+        reviewer: { columns: { fullName: true } },
         checklist: { orderBy: [asc(checklistItems.position)], with: { assignee: { columns: { fullName: true } } } },
         subtasks: { orderBy: [asc(tasks.position)], with: { assignee: { columns: { fullName: true } } } },
         comments: { orderBy: (c, { asc }) => [asc(c.createdAt)] },
@@ -212,7 +370,7 @@ export async function getTaskDetail(taskId: string) {
       },
     });
     if (!row) throw new Error("Task not found.");
-    return row;
+    return { ...row, canReview: isAttorney(actor) };
   });
 }
 

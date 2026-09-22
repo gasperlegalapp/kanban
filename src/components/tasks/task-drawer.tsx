@@ -1,32 +1,45 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Check, ExternalLink, Plus, Trash2 } from "lucide-react";
+import { Check, CheckCircle2, ClipboardCheck, ExternalLink, MoreHorizontal, Plus, Trash2, Undo2 } from "lucide-react";
 import { Drawer } from "@/components/ui/modal";
 import { Field, Spinner } from "@/components/ui/fields";
+import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { useToast } from "@/components/ui/toast";
-import { addChecklistItem, deleteChecklistItem, deleteTask, getTaskDetail, updateChecklistItem, updateTask, type TaskDetailData } from "@/lib/actions/tasks";
+import {
+  addChecklistItem,
+  approveTask,
+  deleteChecklistItem,
+  deleteTask,
+  getTaskDetail,
+  returnTask,
+  updateChecklistItem,
+  updateTask,
+  type TaskDetailData,
+} from "@/lib/actions/tasks";
 import { addComment } from "@/lib/actions/comments";
 import type { PersonLite } from "@/lib/data/types";
 import type { TaskLane } from "@/db/schema";
-import { PRIORITIES, TASK_LANES, TASK_STATUSES } from "@/lib/domain/constants";
+import { BOARD_TASK_LANES, PRIORITIES, TASK_LANES, TASK_STATUSES } from "@/lib/domain/constants";
 import { fmtDate, relTime } from "@/lib/format";
 import { NewTaskDialog } from "./new-task-dialog";
+import { WAITING_ON_OPTIONS } from "./waiting-dialog";
 
 export function TaskDrawer({
   taskId,
   onClose,
   people,
-  lanes,
+  lanes: lanesProp,
   canDelete,
 }: {
   taskId: string | null;
   onClose: () => void;
   people: PersonLite[];
-  lanes: TaskLane[];
+  /** Lanes offered in the lane picker; defaults to the task's board lanes. */
+  lanes?: TaskLane[];
   canDelete: boolean;
 }) {
   const router = useRouter();
@@ -35,9 +48,10 @@ export function TaskDrawer({
   const [pending, start] = useTransition();
   const [newItem, setNewItem] = useState("");
   const [comment, setComment] = useState("");
+  const [returnNote, setReturnNote] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<string | null>(null);
   const [subtaskOpen, setSubtaskOpen] = useState(false);
   const [openSubtaskId, setOpenSubtaskId] = useState<string | null>(null);
-
   const [version, setVersion] = useState(0);
 
   // Reset the drawer when it is pointed at a different task.
@@ -46,7 +60,14 @@ export function TaskDrawer({
     setShownTaskId(taskId);
     setTask(null);
     setOpenSubtaskId(null);
+    setReturnNote(null);
+    setEditingItem(null);
   }
+
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!taskId) return;
@@ -55,7 +76,7 @@ export function TaskDrawer({
       if (cancelled) return;
       if (!res.ok) {
         toast.error(res.error);
-        onClose();
+        onCloseRef.current();
         return;
       }
       setTask(res.data);
@@ -63,22 +84,29 @@ export function TaskDrawer({
     return () => {
       cancelled = true;
     };
-  }, [taskId, version, toast, onClose]);
+  }, [taskId, version, toast]);
 
   const loading = !!taskId && !task;
+  const lanes: TaskLane[] = lanesProp ?? (task ? BOARD_TASK_LANES[task.case.boardId] : undefined) ?? ["core", "assets", "litigation"];
+  const attorneys = people.filter((p) => p.role === "attorney" && (p.isActive || p.id === task?.reviewerId));
 
   const refresh = useCallback(() => {
     setVersion((v) => v + 1);
     router.refresh();
   }, [router]);
 
-  const patch = (p: Parameters<typeof updateTask>[1]) => {
-    if (!task) return;
+  const run = (fn: () => Promise<{ ok: true } | { ok: false; error: string }>, ok?: string, after?: () => void) =>
     start(async () => {
-      const res = await updateTask(task.id, p);
+      const res = await fn();
       if (!res.ok) return toast.error(res.error);
+      if (ok) toast.notify(ok);
+      after?.();
       refresh();
     });
+
+  const patch = (p: Parameters<typeof updateTask>[1]) => {
+    if (!task) return;
+    run(() => updateTask(task.id, p));
   };
 
   const title = task ? (
@@ -96,22 +124,69 @@ export function TaskDrawer({
 
   return (
     <Drawer open={!!taskId} onClose={onClose} title={title}>
-      {loading && !task && (
+      {loading && (
         <div className="flex items-center gap-2 text-sm text-muted">
           <Spinner /> Loading…
         </div>
       )}
       {task && (
         <div className="grid gap-4">
+          {task.status === "review" && (
+            <section className="rounded-md border border-violet-200 bg-violet-50 p-3">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <ClipboardCheck size={16} className="text-violet-700" />
+                <span className="font-medium text-violet-900">Waiting for attorney review</span>
+                <span className="text-xs text-violet-800/80">
+                  {task.reviewer?.fullName ? `Reviewer: ${task.reviewer.fullName}` : "Any attorney"}
+                  {task.reviewRequestedAt && ` · sent ${relTime(task.reviewRequestedAt)}`}
+                </span>
+              </div>
+              {task.canReview && returnNote === null && (
+                <div className="mt-2 flex gap-2">
+                  <button className="btn btn-sm btn-primary" disabled={pending} onClick={() => run(() => approveTask(task.id), "Approved and marked done.")}>
+                    <CheckCircle2 size={12} /> Approve
+                  </button>
+                  <button className="btn btn-sm" disabled={pending} onClick={() => setReturnNote("")}>
+                    <Undo2 size={12} /> Return with note
+                  </button>
+                </div>
+              )}
+              {task.canReview && returnNote !== null && (
+                <div className="mt-2 grid gap-2">
+                  <textarea className="textarea min-h-16" placeholder="What needs to change?" value={returnNote} onChange={(e) => setReturnNote(e.target.value)} autoFocus />
+                  <div className="flex gap-2">
+                    <button
+                      className="btn btn-sm btn-primary"
+                      disabled={pending || returnNote.trim().length < 3}
+                      onClick={() => run(() => returnTask(task.id, returnNote), "Returned to the assignee.", () => setReturnNote(null))}
+                    >
+                      Send back
+                    </button>
+                    <button className="btn btn-sm btn-ghost" onClick={() => setReturnNote(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <Field label="Status">
-              <select className="select" value={task.status} onChange={(e) => patch({ status: e.target.value as typeof task.status })} disabled={pending}>
-                {TASK_STATUSES.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+              <div className="flex gap-1">
+                <select className="select" value={task.status} onChange={(e) => patch({ status: e.target.value as typeof task.status })} disabled={pending}>
+                  {TASK_STATUSES.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                {task.status !== "review" && task.status !== "done" && (
+                  <button className="btn btn-sm shrink-0" disabled={pending} title="Send to an attorney for review" onClick={() => patch({ status: "review" })}>
+                    <ClipboardCheck size={12} /> Review
+                  </button>
+                )}
+              </div>
             </Field>
             <Field label="Lane">
               <select className="select" value={task.lane} onChange={(e) => patch({ lane: e.target.value as TaskLane })} disabled={pending}>
@@ -122,6 +197,31 @@ export function TaskDrawer({
                 ))}
               </select>
             </Field>
+
+            {task.status === "waiting" && (
+              <>
+                <Field label="Waiting on">
+                  <input
+                    className="input"
+                    list="drawer-waiting-on"
+                    defaultValue={task.waitingOn ?? ""}
+                    key={`w-${task.id}-${task.waitingOn}`}
+                    placeholder="Client signature, bank…"
+                    onBlur={(e) => e.target.value.trim() !== (task.waitingOn ?? "") && patch({ waitingOn: e.target.value.trim() || null })}
+                    disabled={pending}
+                  />
+                  <datalist id="drawer-waiting-on">
+                    {WAITING_ON_OPTIONS.map((o) => (
+                      <option key={o} value={o} />
+                    ))}
+                  </datalist>
+                </Field>
+                <Field label="Follow up on">
+                  <input type="date" className="input" value={task.followUpDate ?? ""} onChange={(e) => patch({ followUpDate: e.target.value || null })} disabled={pending} />
+                </Field>
+              </>
+            )}
+
             <Field label="Assignee">
               <select className="select" value={task.assigneeId ?? ""} onChange={(e) => patch({ assigneeId: e.target.value || null })} disabled={pending}>
                 <option value="">Unassigned</option>
@@ -132,6 +232,16 @@ export function TaskDrawer({
                       {p.fullName}
                     </option>
                   ))}
+              </select>
+            </Field>
+            <Field label="Reviewer">
+              <select className="select" value={task.reviewerId ?? ""} onChange={(e) => patch({ reviewerId: e.target.value || null })} disabled={pending}>
+                <option value="">Any attorney</option>
+                {attorneys.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.fullName}
+                  </option>
+                ))}
               </select>
             </Field>
             <Field label="Due date">
@@ -146,8 +256,14 @@ export function TaskDrawer({
                 ))}
               </select>
             </Field>
-            <Field label="Title">
-              <input className="input" defaultValue={task.title} onBlur={(e) => e.target.value.trim() !== task.title && patch({ title: e.target.value.trim() })} disabled={pending} />
+            <Field label="Title" className="col-span-2">
+              <input
+                className="input"
+                defaultValue={task.title}
+                key={`t-${task.id}-${task.title}`}
+                onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== task.title && patch({ title: e.target.value.trim() })}
+                disabled={pending}
+              />
             </Field>
           </div>
 
@@ -155,6 +271,7 @@ export function TaskDrawer({
             <textarea
               className="textarea"
               defaultValue={task.description}
+              key={`d-${task.id}`}
               onBlur={(e) => e.target.value !== task.description && patch({ description: e.target.value })}
               disabled={pending}
             />
@@ -168,40 +285,64 @@ export function TaskDrawer({
             </div>
             <ul className="divide-y divide-line rounded-md border border-line">
               {task.checklist.map((item) => (
-                <li key={item.id} className="group flex items-center gap-2 px-2 py-1.5 text-sm">
-                  <button
-                    className={clsx(
-                      "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-                      item.isDone ? "border-ok bg-ok text-white" : "border-line-strong bg-surface hover:border-accent",
-                    )}
-                    onClick={() =>
-                      start(async () => {
-                        const res = await updateChecklistItem(item.id, { isDone: !item.isDone });
-                        if (!res.ok) return toast.error(res.error);
-                        refresh();
-                      })
-                    }
-                    disabled={pending}
-                    aria-label={item.isDone ? "Mark not done" : "Mark done"}
-                  >
-                    {item.isDone && <Check size={11} />}
-                  </button>
-                  <span className={clsx("flex-1", item.isDone && "text-muted line-through")}>{item.text}</span>
-                  {item.assignee?.fullName && <span className="text-[11px] text-muted">{item.assignee.fullName}</span>}
-                  {item.dueDate && <span className="text-[11px] text-muted">{fmtDate(item.dueDate, "M/d")}</span>}
-                  <button
-                    className="text-faint opacity-0 hover:text-bad group-hover:opacity-100"
-                    onClick={() =>
-                      start(async () => {
-                        const res = await deleteChecklistItem(item.id);
-                        if (!res.ok) return toast.error(res.error);
-                        refresh();
-                      })
-                    }
-                    aria-label="Delete item"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                <li key={item.id} className="group px-2 py-1.5 text-sm">
+                  <div className="flex items-center gap-2">
+                    <button
+                      className={clsx(
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                        item.isDone ? "border-ok bg-ok text-white" : "border-line-strong bg-surface hover:border-accent",
+                      )}
+                      onClick={() => run(() => updateChecklistItem(item.id, { isDone: !item.isDone }))}
+                      disabled={pending}
+                      aria-label={item.isDone ? "Mark not done" : "Mark done"}
+                    >
+                      {item.isDone && <Check size={11} />}
+                    </button>
+                    <span className={clsx("flex-1", item.isDone && "text-muted line-through")}>{item.text}</span>
+                    {item.assignee?.fullName && <span className="text-[11px] text-muted">{item.assignee.fullName}</span>}
+                    {item.dueDate && <span className="text-[11px] text-muted">{fmtDate(item.dueDate, "M/d")}</span>}
+                    <button
+                      className="text-faint opacity-0 hover:text-ink group-hover:opacity-100"
+                      onClick={() => setEditingItem(editingItem === item.id ? null : item.id)}
+                      aria-label="Assign or set a due date"
+                      title="Assign or set a due date"
+                    >
+                      <MoreHorizontal size={14} />
+                    </button>
+                    <button
+                      className="text-faint opacity-0 hover:text-bad group-hover:opacity-100"
+                      onClick={() => run(() => deleteChecklistItem(item.id))}
+                      aria-label="Delete item"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                  {editingItem === item.id && (
+                    <div className="mt-1.5 flex items-center gap-2 pl-6">
+                      <select
+                        className="select h-7 w-auto text-xs"
+                        value={item.assigneeId ?? ""}
+                        onChange={(e) => run(() => updateChecklistItem(item.id, { assigneeId: e.target.value || null }))}
+                        disabled={pending}
+                      >
+                        <option value="">No one</option>
+                        {people
+                          .filter((p) => p.isActive || p.id === item.assigneeId)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.fullName}
+                            </option>
+                          ))}
+                      </select>
+                      <input
+                        type="date"
+                        className="input h-7 w-36 text-xs"
+                        value={item.dueDate ?? ""}
+                        onChange={(e) => run(() => updateChecklistItem(item.id, { dueDate: e.target.value || null }))}
+                        disabled={pending}
+                      />
+                    </div>
+                  )}
                 </li>
               ))}
               <li className="flex items-center gap-2 px-2 py-1.5">
@@ -216,11 +357,7 @@ export function TaskDrawer({
                       e.preventDefault();
                       const text = newItem.trim();
                       setNewItem("");
-                      start(async () => {
-                        const res = await addChecklistItem(task.id, text);
-                        if (!res.ok) return toast.error(res.error);
-                        refresh();
-                      });
+                      run(() => addChecklistItem(task.id, text));
                     }
                   }}
                   disabled={pending}
@@ -270,18 +407,18 @@ export function TaskDrawer({
                 </div>
               ))}
               <div className="flex gap-2">
-                <textarea className="textarea min-h-14 flex-1" placeholder="Add a comment…" value={comment} onChange={(e) => setComment(e.target.value)} disabled={pending} />
+                <MentionTextarea
+                  className="min-h-14"
+                  value={comment}
+                  onChange={setComment}
+                  people={people}
+                  disabled={pending}
+                  onSubmit={() => comment.trim() && run(() => addComment({ taskId: task.id, body: comment }), undefined, () => setComment(""))}
+                />
                 <button
                   className="btn btn-primary self-end"
                   disabled={pending || !comment.trim()}
-                  onClick={() =>
-                    start(async () => {
-                      const res = await addComment({ taskId: task.id, body: comment });
-                      if (!res.ok) return toast.error(res.error);
-                      setComment("");
-                      refresh();
-                    })
-                  }
+                  onClick={() => run(() => addComment({ taskId: task.id, body: comment }), undefined, () => setComment(""))}
                 >
                   Post
                 </button>
@@ -326,7 +463,7 @@ export function TaskDrawer({
           onCreated={() => refresh()}
         />
       )}
-      {openSubtaskId && <TaskDrawer taskId={openSubtaskId} onClose={() => setOpenSubtaskId(null)} people={people} lanes={lanes} canDelete={canDelete} />}
+      {openSubtaskId && <TaskDrawer taskId={openSubtaskId} onClose={() => setOpenSubtaskId(null)} people={people} canDelete={canDelete} />}
     </Drawer>
   );
 }

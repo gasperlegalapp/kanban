@@ -46,7 +46,7 @@ export const caseTypesRelations = relations(caseTypes, ({ one, many }) => ({
 
 export const profilesRelations = relations(profiles, ({ many }) => ({
   ownedCases: many(cases),
-  assignedTasks: many(tasks),
+  assignedTasks: many(tasks, { relationName: "task_assignee" }),
   notifications: many(notifications),
 }));
 
@@ -65,7 +65,8 @@ export const casesRelations = relations(cases, ({ one, many }) => ({
 
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
   case: one(cases, { fields: [tasks.caseId], references: [cases.id] }),
-  assignee: one(profiles, { fields: [tasks.assigneeId], references: [profiles.id] }),
+  assignee: one(profiles, { fields: [tasks.assigneeId], references: [profiles.id], relationName: "task_assignee" }),
+  reviewer: one(profiles, { fields: [tasks.reviewerId], references: [profiles.id], relationName: "task_reviewer" }),
   parent: one(tasks, { fields: [tasks.parentTaskId], references: [tasks.id], relationName: "task_children" }),
   subtasks: many(tasks, { relationName: "task_children" }),
   checklist: many(checklistItems),
@@ -106,6 +107,7 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 
 export const templateSetsRelations = relations(templateSets, ({ one, many }) => ({
   board: one(boards, { fields: [templateSets.boardId], references: [boards.id] }),
+  triggerStage: one(stages, { fields: [templateSets.triggerStageId], references: [stages.id] }),
   tasks: many(templateTasks),
 }));
 

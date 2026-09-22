@@ -30,6 +30,8 @@ export type TemplateSetSeed = {
   name: string;
   description?: string;
   applyOnCreate?: boolean;
+  /** Stage key: the set is also created whenever a case enters this stage. */
+  triggerStageKey?: string;
   tasks: TemplateTaskSeed[];
 };
 
@@ -117,8 +119,8 @@ export const PROBATE_BOARD: BoardSeed = {
   ],
   templateSets: [
     {
-      key: "probate_standard",
-      name: "Standard probate task set",
+      key: "probate_start",
+      name: "New probate case",
       description: "Created automatically for every new probate case.",
       applyOnCreate: true,
       tasks: [
@@ -140,6 +142,14 @@ export const PROBATE_BOARD: BoardSeed = {
           checklist: ["Waivers sent to all parties", "Received signed waivers from all parties", "Filed waivers to Court"],
         },
         { title: "File with Court", checklist: ["Get documents signed", "File with the Court"] },
+      ],
+    },
+    {
+      key: "probate_appointment",
+      name: "Appointment",
+      description: "Created when a case enters Appointment.",
+      triggerStageKey: "appointment",
+      tasks: [
         {
           title: "Appointment on Estate",
           checklist: [
@@ -151,6 +161,14 @@ export const PROBATE_BOARD: BoardSeed = {
           ],
         },
         { title: "Letters Issued", checklist: ["Update Actionstep", "Send letters to Fiduciary"] },
+      ],
+    },
+    {
+      key: "probate_inventory",
+      name: "Inventory",
+      description: "Created when a case enters Inventory.",
+      triggerStageKey: "inventory",
+      tasks: [
         {
           title: "Fiduciary Claim(s)",
           description:
@@ -177,12 +195,59 @@ export const PROBATE_BOARD: BoardSeed = {
           dueAnchor: "appointment_date",
           dueOffsetDays: 90,
         },
+      ],
+    },
+    {
+      key: "probate_execution",
+      name: "Administration",
+      description: "Created when a case enters Execution (Admin).",
+      triggerStageKey: "execution_admin",
+      tasks: [
         {
           title: "Pay Debts / Expenses",
           lane: "assets",
           description:
             "Once the inventory is filed and approved, pay bills from the estate. Track debts and major expenses such as insurance, bond and taxes here.",
           checklist: ["Taxes"],
+        },
+      ],
+    },
+    {
+      key: "probate_accounting",
+      name: "Final account (starter)",
+      description: "Created when a case enters Accounting. Starter list: edit to match how the firm works.",
+      triggerStageKey: "accounting",
+      tasks: [
+        {
+          title: "Final Account",
+          checklist: ["Gather bank statements and receipts", "Draft final account", "Attorney review", "Obtain waivers / consents", "File final account"],
+          dueAnchor: "appointment_date",
+          dueOffsetDays: 180,
+        },
+      ],
+    },
+    {
+      key: "probate_distribution",
+      name: "Distribution (starter)",
+      description: "Created when a case enters Distribution. Starter list: edit to match how the firm works.",
+      triggerStageKey: "distribution",
+      tasks: [
+        {
+          title: "Distribute Estate",
+          lane: "assets",
+          checklist: ["Confirm distribution amounts with fiduciary", "Issue distributions", "Collect signed receipts from beneficiaries", "File receipts with the Court"],
+        },
+      ],
+    },
+    {
+      key: "probate_wrap_up",
+      name: "Wrap-up (starter)",
+      description: "Created when a case enters Wrap-up. Starter list: edit to match how the firm works.",
+      triggerStageKey: "wrap_up",
+      tasks: [
+        {
+          title: "File Closure",
+          checklist: ["Final billing", "Close estate checking account", "Return original documents to client", "Update Actionstep", "Archive file"],
         },
       ],
     },
@@ -334,9 +399,9 @@ export const GUARDIANSHIP_BOARD: BoardSeed = {
   ],
   templateSets: [
     {
-      key: "guardianship_standard",
-      name: "Standard guardianship task set (starter)",
-      description: "Starter set based on the guardianship board columns. Edit to match how the firm works.",
+      key: "guardianship_start",
+      name: "New guardianship case (starter)",
+      description: "Created automatically for every new guardianship case. Starter list: edit to match how the firm works.",
       applyOnCreate: true,
       tasks: [
         { title: "Start Case", checklist: ["Open case in Actionstep", "Update information in Actionstep"] },
@@ -351,10 +416,26 @@ export const GUARDIANSHIP_BOARD: BoardSeed = {
         },
         { title: "Application Drafting", checklist: ["Draft application for appointment of guardian", "Attorney review documents"] },
         { title: "File with Court", checklist: ["Get documents signed", "File with the Court", "Arrange service on ward and next of kin"] },
+      ],
+    },
+    {
+      key: "guardianship_appointment",
+      name: "Appointment (starter)",
+      description: "Created when a case enters Appointment.",
+      triggerStageKey: "appointment",
+      tasks: [
         {
           title: "Appointment Hearing",
           checklist: ["Hearing - enter on Calendars", "Notify client and parties of hearing", "Hearing Prep", "Letters of Guardianship received"],
         },
+      ],
+    },
+    {
+      key: "guardianship_execution",
+      name: "Execution (starter)",
+      description: "Created when a case enters Execution.",
+      triggerStageKey: "execution",
+      tasks: [
         { title: "Bond", lane: "assets", checklist: ["Obtain bond quote", "File bond"] },
         {
           title: "Guardian's Inventory",
@@ -363,6 +444,14 @@ export const GUARDIANSHIP_BOARD: BoardSeed = {
           dueAnchor: "appointment_date",
           dueOffsetDays: 90,
         },
+      ],
+    },
+    {
+      key: "guardianship_reporting",
+      name: "Reporting (starter)",
+      description: "Created when a case enters Reporting/Fee.",
+      triggerStageKey: "reporting_fee",
+      tasks: [
         { title: "Guardian's Report / Account", checklist: ["Draft annual guardian's report", "Draft guardian's account", "File with court"] },
       ],
     },

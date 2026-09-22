@@ -16,6 +16,7 @@ const setInput = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).optional(),
   applyOnCreate: z.boolean().optional(),
+  triggerStageId: z.uuid().nullable().optional(),
 });
 
 function slug(s: string): string {
@@ -36,6 +37,7 @@ export async function createTemplateSet(raw: z.input<typeof setInput>): Promise<
         name: input.name,
         description: input.description ?? "",
         applyOnCreate: input.applyOnCreate ?? false,
+        triggerStageId: input.triggerStageId ?? null,
         position: max + 1,
       })
       .returning({ id: templateSets.id });
@@ -55,6 +57,7 @@ export async function updateTemplateSet(id: string, raw: Partial<z.input<typeof 
         ...(patch.name !== undefined ? { name: patch.name } : {}),
         ...(patch.description !== undefined ? { description: patch.description } : {}),
         ...(patch.applyOnCreate !== undefined ? { applyOnCreate: patch.applyOnCreate } : {}),
+        ...(patch.triggerStageId !== undefined ? { triggerStageId: patch.triggerStageId } : {}),
       })
       .where(eq(templateSets.id, id));
     revalidatePath("/templates");

@@ -13,6 +13,12 @@ Case and task workflow for Gasper Legal. A two-level board, in the spirit of Bus
 - One-click **Open in Actionstep** link on every case.
 - Daily **reminders** (in-app, and by email when configured) for upcoming and overdue deadlines and overdue tasks.
 - **Roles**: attorneys can close/archive cases, manage users, templates and settings; staff can do everything else.
+- **Dashboard** (home page): cases in red and yellow with reasons, stale cases, workload by person, and the next two weeks of hearings and deadlines.
+- **My work**: each person's queue grouped into overdue, due today, follow-ups due, due this week, sent for review and everything else, plus checklist items assigned to them. Attorneys can view anyone's queue.
+- **Attorney review**: tasks moved to Review land in a queue (defaulting to the case's attorney as reviewer) with Approve and Return-with-note.
+- **Waiting follow-ups**: moving a task to Waiting asks what it is waiting on and when to check back; it resurfaces in My work and in the daily reminders on that date.
+- **Stage automation**: template sets can be tied to a stage, so entering Appointment, Inventory, Accounting and so on creates that stage's tasks. Tasks the case already has are skipped.
+- **Notifications** (bell, and email when configured) for assignments, review hand-offs, approvals and returns, comments on your tasks, and @mentions.
 
 ## Stack
 
@@ -28,6 +34,8 @@ corepack pnpm dev
 ```
 
 Open http://localhost:3000. With no `DATABASE_URL` set the app uses an embedded Postgres (PGlite) stored in `./.pglite`, creates the schema, and seeds the boards, templates, deadline rules and the five users. Sign-in is a "pick your name" screen in this mode.
+
+`.env.local` on the firm PC points at the **live** database. To try changes on a local copy instead, run `corepack pnpm dev:local` (embedded database in `./.pglite`, pick-your-name login) and `corepack pnpm db:migrate:local` after pulling new migrations.
 
 Useful commands:
 

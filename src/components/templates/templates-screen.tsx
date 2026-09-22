@@ -19,7 +19,9 @@ const ANCHOR_LABELS: Record<DeadlineAnchor, string> = {
   case_opened: "Case opened",
 };
 
-export function TemplatesScreen({ boards, sets }: { boards: Board[]; sets: SetWithTasks[] }) {
+type StageOption = { id: string; name: string };
+
+export function TemplatesScreen({ boards, sets, stagesByBoard }: { boards: Board[]; sets: SetWithTasks[]; stagesByBoard: Record<string, StageOption[]> }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -54,8 +56,8 @@ export function TemplatesScreen({ boards, sets }: { boards: Board[]; sets: SetWi
           </button>
         </div>
         <p className="mb-4 text-sm text-muted">
-          A template set is a bundle of tasks with checklists. Sets marked <span className="font-medium text-ink">auto</span> are created for every new case on this board; the others can be
-          added to a case from its page.
+          A template set is a bundle of tasks with checklists. A set can be created automatically on every new case, whenever a case enters a particular stage, or added to a
+          case by hand from its page.
         </p>
 
         {visible.length === 0 && <p className="text-sm text-faint">No templates for this board yet.</p>}
@@ -67,7 +69,12 @@ export function TemplatesScreen({ boards, sets }: { boards: Board[]; sets: SetWi
                 <h2 className="font-semibold">{set.name}</h2>
                 {set.applyOnCreate && (
                   <span className="badge bg-brand-soft text-brand">
-                    <Sparkles size={10} /> auto on new case
+                    <Sparkles size={10} /> every new case
+                  </span>
+                )}
+                {set.triggerStageId && (
+                  <span className="badge bg-brand-soft text-brand">
+                    <Sparkles size={10} /> when a case enters {(stagesByBoard[set.boardId] ?? []).find((st) => st.id === set.triggerStageId)?.name ?? "a stage"}
                   </span>
                 )}
                 <span className="text-xs text-muted">{set.tasks.length} tasks</span>
@@ -139,6 +146,7 @@ export function TemplatesScreen({ boards, sets }: { boards: Board[]; sets: SetWi
       {setDialog && (
         <SetDialog
           boardId={boardId}
+          stages={stagesByBoard[boardId] ?? []}
           set={setDialog === "new" ? null : setDialog}
           onClose={() => setSetDialog(null)}
           onSave={(input) =>
@@ -163,12 +171,29 @@ export function TemplatesScreen({ boards, sets }: { boards: Board[]; sets: SetWi
   );
 }
 
-function SetDialog({ boardId, set, onClose, onSave }: { boardId: string; set: SetWithTasks | null; onClose: () => void; onSave: (i: { name: string; description: string; applyOnCreate: boolean }) => void }) {
+function SetDialog({
+  boardId,
+  stages,
+  set,
+  onClose,
+  onSave,
+}: {
+  boardId: string;
+  stages: StageOption[];
+  set: SetWithTasks | null;
+  onClose: () => void;
+  onSave: (i: { name: string; description: string; applyOnCreate: boolean; triggerStageId: string | null }) => void;
+}) {
   return (
     <Modal open onClose={onClose} title={set ? "Edit template set" : `New template set (${boardId})`}>
       <form
         action={(fd) => {
-          onSave({ name: String(fd.get("name") ?? ""), description: String(fd.get("description") ?? ""), applyOnCreate: fd.get("applyOnCreate") === "on" });
+          onSave({
+            name: String(fd.get("name") ?? ""),
+            description: String(fd.get("description") ?? ""),
+            applyOnCreate: fd.get("applyOnCreate") === "on",
+            triggerStageId: String(fd.get("triggerStageId") ?? "") || null,
+          });
           onClose();
         }}
         className="grid gap-3"
@@ -182,6 +207,16 @@ function SetDialog({ boardId, set, onClose, onSave }: { boardId: string; set: Se
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="applyOnCreate" defaultChecked={set?.applyOnCreate ?? false} /> Create these tasks automatically on every new case
         </label>
+        <Field label="Also create them when a case enters" hint="Tasks the case already has (matched by title) are skipped, so nothing is duplicated.">
+          <select name="triggerStageId" className="select" defaultValue={set?.triggerStageId ?? ""}>
+            <option value="">No stage (manual or new case only)</option>
+            {stages.map((st) => (
+              <option key={st.id} value={st.id}>
+                {st.name}
+              </option>
+            ))}
+          </select>
+        </Field>
         <div className="flex justify-end gap-2">
           <button type="button" className="btn" onClick={onClose}>
             Cancel

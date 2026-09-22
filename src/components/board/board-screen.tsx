@@ -18,6 +18,7 @@ import { SkipReasonModal, SKIP_REASON_MIN } from "./skip-reason-modal";
 import { NewCaseDialog } from "@/components/cases/new-case-dialog";
 import { NewTaskDialog } from "@/components/tasks/new-task-dialog";
 import { TaskDrawer } from "@/components/tasks/task-drawer";
+import { WaitingDialog } from "@/components/tasks/waiting-dialog";
 
 type PendingMove = { c: CaseSummary; stageId: string; laneId: string | null; backward: boolean };
 
@@ -52,6 +53,7 @@ export function BoardScreen({
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [hideDone, setHideDone] = useState(true);
+  const [waitingDrop, setWaitingDrop] = useState<TaskDrop | null>(null);
 
   const leaves = config.leafStages;
   const taskLanes: TaskLane[] = BOARD_TASK_LANES[config.board.id] ?? ["core", "assets", "litigation"];
@@ -134,6 +136,9 @@ export function BoardScreen({
           setCases(initialCases);
           return;
         }
+        if (res.data.tasksCreated > 0) {
+          toast.notify(`${c.title}: ${res.data.tasksCreated} task${res.data.tasksCreated === 1 ? "" : "s"} added for ${stage.name}.`);
+        }
       }
       if (laneChanged) {
         const res = await updateCase(c.id, { laneId });
@@ -158,15 +163,21 @@ export function BoardScreen({
     if (next) requestMove(c, next.id, c.laneId ?? null);
   }
 
-  function onTaskDrop(drop: TaskDrop) {
+  function onTaskDrop(drop: TaskDrop, extra: { waitingOn?: string | null; followUpDate?: string } = {}) {
+    const current = cases.flatMap((c) => c.tasks).find((t) => t.id === drop.taskId);
+    // Moving into Waiting asks what it is waiting on and when to check back.
+    if (drop.status === "waiting" && current?.status !== "waiting" && !extra.followUpDate) {
+      setWaitingDrop(drop);
+      return;
+    }
     setCases((prev) =>
       prev.map((c) => ({
         ...c,
-        tasks: c.tasks.map((t) => (t.id === drop.taskId ? { ...t, status: drop.status, lane: drop.lane } : t)),
+        tasks: c.tasks.map((t) => (t.id === drop.taskId ? { ...t, status: drop.status, lane: drop.lane, ...extra } : t)),
       })),
     );
     start(async () => {
-      const res = await updateTask(drop.taskId, { status: drop.status, lane: drop.lane });
+      const res = await updateTask(drop.taskId, { status: drop.status, lane: drop.lane, ...extra });
       if (!res.ok) {
         toast.error(res.error);
         setCases(initialCases);
@@ -274,6 +285,17 @@ export function BoardScreen({
         lanes={taskLanes}
         people={config.people}
       />
+      {waitingDrop && (
+        <WaitingDialog
+          taskTitle={cases.flatMap((c) => c.tasks).find((t) => t.id === waitingDrop.taskId)?.title ?? "This task"}
+          onClose={() => setWaitingDrop(null)}
+          onConfirm={(v) => {
+            const d = waitingDrop;
+            setWaitingDrop(null);
+            onTaskDrop(d, v);
+          }}
+        />
+      )}
       <TaskDrawer taskId={openTaskId} onClose={() => setOpenTaskId(null)} people={config.people} lanes={taskLanes} canDelete />
       {cases.length === 0 && (
         <div className="pointer-events-none absolute inset-x-0 top-40 flex justify-center">

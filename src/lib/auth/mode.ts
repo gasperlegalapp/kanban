@@ -8,7 +8,7 @@ export type AuthMode = "supabase" | "dev";
  *        when Supabase is not configured, or when AUTH_MODE=dev is set.
  */
 export function authMode(): AuthMode {
-  if (process.env.AUTH_MODE === "dev") return "dev";
+  if (process.env.AUTH_MODE === "dev" || process.env.USE_PGLITE === "1") return "dev";
   if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return "supabase";
   return "dev";
 }

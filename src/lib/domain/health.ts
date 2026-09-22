@@ -10,6 +10,8 @@ export type CaseMetrics = {
   reviewTasks: number;
   blockedTasks: number;
   waitingTasks: number;
+  /** Waiting tasks whose follow-up date has arrived. */
+  followUpsDue: number;
   /** Pending hearings/deadlines whose date has passed. */
   overdueEvents: number;
   /** Soonest pending hearing or deadline, if any. */
@@ -43,7 +45,7 @@ function toDay(value: string | Date): Date {
 export function computeCaseMetrics(
   c: Pick<Case, "stageEnteredAt" | "status">,
   stage: Pick<Stage, "stuckDays" | "criticalDays" | "isClosed" | "isArchive"> | null | undefined,
-  caseTasks: Pick<Task, "status" | "dueDate">[],
+  caseTasks: (Pick<Task, "status" | "dueDate"> & Partial<Pick<Task, "followUpDate">>)[],
   caseEvents: CaseEvent[],
   now: Date = new Date(),
 ): CaseMetrics {
@@ -55,6 +57,7 @@ export function computeCaseMetrics(
   const reviewTasks = open.filter((t) => t.status === "review").length;
   const blockedTasks = open.filter((t) => t.status === "blocked").length;
   const waitingTasks = open.filter((t) => t.status === "waiting").length;
+  const followUpsDue = open.filter((t) => t.status === "waiting" && t.followUpDate && toDay(t.followUpDate) <= today).length;
 
   const pending = caseEvents
     .filter((e) => e.status === "pending")
@@ -80,6 +83,7 @@ export function computeCaseMetrics(
       if (stuck !== null && daysInStage >= stuck) reasons.push(`${daysInStage} days in stage (watch at ${stuck})`);
       if (overdueTasks > 0) reasons.push(`${overdueTasks} overdue task${overdueTasks > 1 ? "s" : ""}`);
       if (blockedTasks > 0) reasons.push(`${blockedTasks} blocked task${blockedTasks > 1 ? "s" : ""}`);
+      if (followUpsDue > 0) reasons.push(`${followUpsDue} follow-up${followUpsDue > 1 ? "s" : ""} due`);
       if (daysToNextEvent !== null && daysToNextEvent >= 0 && daysToNextEvent <= UPCOMING_EVENT_WARNING_DAYS) {
         reasons.push(`${nextEvent!.title} in ${daysToNextEvent} day${daysToNextEvent === 1 ? "" : "s"}`);
       }
@@ -94,6 +98,7 @@ export function computeCaseMetrics(
     reviewTasks,
     blockedTasks,
     waitingTasks,
+    followUpsDue,
     overdueEvents,
     nextEvent,
     daysToNextEvent,

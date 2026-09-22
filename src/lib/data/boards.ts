@@ -20,6 +20,7 @@ import {
   type Stage,
 } from "@/db/schema";
 import { computeCaseMetrics } from "@/lib/domain/health";
+import { firmToday } from "@/lib/dates";
 import type { BoardConfig, CaseDetail, CaseSummary, PersonLite, StageNode, TaskSummary } from "./types";
 
 export function buildStageTree(rows: Stage[]): { tree: StageNode[]; leaves: Stage[] } {
@@ -134,7 +135,7 @@ export async function getBoardCases(boardId: string, opts: { includeClosed?: boo
     caseIds.length ? db.select().from(events).where(inArray(events.caseId, caseIds)).orderBy(asc(events.date)) : Promise.resolve([]),
   ]);
 
-  const now = new Date();
+  const now = firmToday();
   return caseRows.map((c) => {
     const stage = stageById.get(c.stageId)!;
     const caseTasks = taskRows.filter((t) => t.caseId === c.id);
@@ -184,7 +185,7 @@ export async function getCaseDetail(caseId: string): Promise<CaseDetail | null> 
     lane: c.laneId ? config.lanes.find((l) => l.id === c.laneId) ?? null : null,
     caseType: c.caseTypeId ? config.caseTypes.find((t) => t.id === c.caseTypeId) ?? null : null,
     ownerName: c.ownerId ? config.people.find((p) => p.id === c.ownerId)?.fullName ?? null : null,
-    metrics: computeCaseMetrics(c, stage, taskRows, eventRows),
+    metrics: computeCaseMetrics(c, stage, taskRows, eventRows, firmToday()),
     tasks: taskRows,
     events: eventRows,
     comments: commentRows,

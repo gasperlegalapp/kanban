@@ -16,6 +16,9 @@ type Cached = {
 const cache: Cached = ((globalThis as unknown as { __casecontrol_db?: Cached }).__casecontrol_db ??= {});
 
 export function isPostgresConfigured(): boolean {
+  // USE_PGLITE=1 forces the local embedded database even when .env.local
+  // points at the live Supabase database (see scripts/dev-local.mjs).
+  if (process.env.USE_PGLITE === "1") return false;
   return !!process.env.DATABASE_URL;
 }
 

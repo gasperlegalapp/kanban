@@ -74,6 +74,8 @@ export const profiles = pgTable(
     isActive: boolean("is_active").notNull().default(true),
     // Supabase auth.users id once the person has signed in in production.
     authUserId: text("auth_user_id"),
+    // Send notification emails (assignments, reviews, mentions, reminders).
+    notifyEmail: boolean("notify_email").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -221,6 +223,12 @@ export const tasks = pgTable(
     priority: priorityEnum("priority").notNull().default("normal"),
     position: integer("position").notNull().default(0),
     templateKey: text("template_key"),
+    // While status is "waiting": what we are waiting on and when to check back.
+    waitingOn: text("waiting_on"),
+    followUpDate: date("follow_up_date"),
+    // Attorney expected to review the task while it sits in "review".
+    reviewerId: uuid("reviewer_id").references(() => profiles.id),
+    reviewRequestedAt: timestamp("review_requested_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
@@ -232,6 +240,7 @@ export const tasks = pgTable(
     index("tasks_status_idx").on(t.status),
     index("tasks_assignee_idx").on(t.assigneeId),
     index("tasks_due_idx").on(t.dueDate),
+    index("tasks_follow_up_idx").on(t.followUpDate),
   ],
 );
 
@@ -338,6 +347,7 @@ export const notifications = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull().default("reminder"),
     title: text("title").notNull(),
     body: text("body").notNull().default(""),
     href: text("href"),
@@ -368,6 +378,8 @@ export const templateSets = pgTable(
     description: text("description").notNull().default(""),
     // Applied automatically when a new case is created on this board.
     applyOnCreate: boolean("apply_on_create").notNull().default(false),
+    // Also applied automatically whenever a case enters this stage.
+    triggerStageId: uuid("trigger_stage_id").references(() => stages.id, { onDelete: "set null" }),
     position: integer("position").notNull().default(0),
   },
   (t) => [uniqueIndex("template_sets_board_key_idx").on(t.boardId, t.key)],
