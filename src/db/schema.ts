@@ -33,6 +33,7 @@ export const priorityEnum = pgEnum("priority", ["low", "normal", "high", "urgent
 export const eventKindEnum = pgEnum("event_kind", ["hearing", "deadline"]);
 export const eventStatusEnum = pgEnum("event_status", ["pending", "done", "cancelled"]);
 export const willStatusEnum = pgEnum("will_status", ["testate", "intestate", "unknown"]);
+export const templateRepeatEnum = pgEnum("template_repeat", ["once", "every_time"]);
 export const deadlineAnchorEnum = pgEnum("deadline_anchor", [
   "appointment_date",
   "date_of_death",
@@ -380,6 +381,8 @@ export const templateSets = pgTable(
     applyOnCreate: boolean("apply_on_create").notNull().default(false),
     // Also applied automatically whenever a case enters this stage.
     triggerStageId: uuid("trigger_stage_id").references(() => stages.id, { onDelete: "set null" }),
+    // "once": a case gets these tasks the first time only; "every_time": again on each entry.
+    repeat: templateRepeatEnum("repeat").notNull().default("once"),
     position: integer("position").notNull().default(0),
   },
   (t) => [uniqueIndex("template_sets_board_key_idx").on(t.boardId, t.key)],
@@ -399,9 +402,30 @@ export const templateTasks = pgTable(
     checklist: jsonb("checklist").$type<string[]>().notNull().default([]),
     // Optional relative due date: anchor + offset days.
     dueAnchor: deadlineAnchorEnum("due_anchor"),
+    // Or due N days (dueOffsetDays) after the tasks are created, e.g. when the case enters the stage.
+    dueFromCreation: boolean("due_from_creation").notNull().default(false),
     dueOffsetDays: integer("due_offset_days"),
+    // Default assignee: a specific person, or the case's responsible attorney/staff.
+    assigneeId: uuid("assignee_id").references(() => profiles.id, { onDelete: "set null" }),
+    assignToOwner: boolean("assign_to_owner").notNull().default(false),
   },
   (t) => [index("template_tasks_set_idx").on(t.setId)],
+);
+
+/** Each time a template set was applied to a case; "once" sets check this. */
+export const templateRuns = pgTable(
+  "template_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    setId: uuid("set_id")
+      .notNull()
+      .references(() => templateSets.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("template_runs_case_set_idx").on(t.caseId, t.setId)],
 );
 
 export const deadlineRules = pgTable(
@@ -450,6 +474,7 @@ export type AuditEntry = typeof auditLog.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type TemplateSet = typeof templateSets.$inferSelect;
 export type TemplateTask = typeof templateTasks.$inferSelect;
+export type TemplateRepeat = (typeof templateRepeatEnum.enumValues)[number];
 export type DeadlineRule = typeof deadlineRules.$inferSelect;
 
 export type UserRole = (typeof userRoleEnum.enumValues)[number];

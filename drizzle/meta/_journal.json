@@ -15,6 +15,13 @@
       "when": 1790118071768,
       "tag": "0001_tier1_workflow",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790300248153,
+      "tag": "0002_template_automation",
+      "breakpoints": true
     }
   ]
 }

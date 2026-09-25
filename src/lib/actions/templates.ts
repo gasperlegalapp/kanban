@@ -4,7 +4,7 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { templateSets, templateTasks } from "@/db/schema";
+import { stages, templateSets, templateTasks } from "@/db/schema";
 import { requireAttorneyActor } from "@/lib/auth/session";
 import { runAction, type ActionResult } from "./result";
 
@@ -17,6 +17,7 @@ const setInput = z.object({
   description: z.string().trim().max(500).optional(),
   applyOnCreate: z.boolean().optional(),
   triggerStageId: z.uuid().nullable().optional(),
+  repeat: z.enum(["once", "every_time"]).optional(),
 });
 
 function slug(s: string): string {
@@ -38,6 +39,7 @@ export async function createTemplateSet(raw: z.input<typeof setInput>): Promise<
         description: input.description ?? "",
         applyOnCreate: input.applyOnCreate ?? false,
         triggerStageId: input.triggerStageId ?? null,
+        repeat: input.repeat ?? "once",
         position: max + 1,
       })
       .returning({ id: templateSets.id });
@@ -58,6 +60,7 @@ export async function updateTemplateSet(id: string, raw: Partial<z.input<typeof 
         ...(patch.description !== undefined ? { description: patch.description } : {}),
         ...(patch.applyOnCreate !== undefined ? { applyOnCreate: patch.applyOnCreate } : {}),
         ...(patch.triggerStageId !== undefined ? { triggerStageId: patch.triggerStageId } : {}),
+        ...(patch.repeat !== undefined ? { repeat: patch.repeat } : {}),
       })
       .where(eq(templateSets.id, id));
     revalidatePath("/templates");
@@ -77,6 +80,9 @@ export async function deleteTemplateSet(id: string): Promise<ActionResult> {
 
 const taskInput = z.object({
   setId: z.uuid(),
+  assigneeId: z.uuid().nullable().optional(),
+  assignToOwner: z.boolean().optional(),
+  dueFromCreation: z.boolean().optional(),
   title: z.string().trim().min(1).max(200),
   description: z.string().max(5000).optional(),
   lane: lane.optional(),
@@ -84,6 +90,49 @@ const taskInput = z.object({
   dueAnchor: anchor.nullable().optional(),
   dueOffsetDays: z.number().int().min(-365).max(3650).nullable().optional(),
 });
+
+type DueInput = { dueAnchor?: z.infer<typeof anchor> | null; dueFromCreation?: boolean; dueOffsetDays?: number | null };
+
+/** A task is due from creation or from a case date, never both. */
+function dueFields(i: DueInput) {
+  const fromCreation = i.dueFromCreation ?? false;
+  const anchorValue = fromCreation ? null : (i.dueAnchor ?? null);
+  return { dueFromCreation: fromCreation, dueAnchor: anchorValue, dueOffsetDays: fromCreation || anchorValue ? (i.dueOffsetDays ?? 0) : null };
+}
+
+function assigneeFields(i: { assigneeId?: string | null; assignToOwner?: boolean }) {
+  const toOwner = i.assignToOwner ?? false;
+  return { assignToOwner: toOwner, assigneeId: toOwner ? null : (i.assigneeId ?? null) };
+}
+
+/**
+ * The template set that runs when a case enters `stageId`, created (named
+ * after the column) if the column has none yet. Used by the column view.
+ */
+export async function ensureStageTemplateSet(stageId: string): Promise<ActionResult<{ id: string }>> {
+  return runAction(async () => {
+    await requireAttorneyActor();
+    const db = await getDb();
+    const existing = await db.query.templateSets.findFirst({ where: eq(templateSets.triggerStageId, stageId), orderBy: [asc(templateSets.position)] });
+    if (existing) return { id: existing.id };
+    const stage = await db.query.stages.findFirst({ where: eq(stages.id, stageId) });
+    if (!stage) throw new Error("Column not found.");
+    const [{ max }] = await db.select({ max: sql<number>`coalesce(max(${templateSets.position}), -1)::int` }).from(templateSets).where(eq(templateSets.boardId, stage.boardId));
+    const [row] = await db
+      .insert(templateSets)
+      .values({
+        boardId: stage.boardId,
+        key: `${slug(stage.name)}_${Date.now().toString(36)}`,
+        name: stage.name,
+        description: `Created when a case enters ${stage.name}.`,
+        triggerStageId: stage.id,
+        position: max + 1,
+      })
+      .returning({ id: templateSets.id });
+    revalidatePath("/templates");
+    return { id: row.id };
+  });
+}
 
 export async function createTemplateTask(raw: z.input<typeof taskInput>): Promise<ActionResult<{ id: string }>> {
   return runAction(async () => {
@@ -99,8 +148,8 @@ export async function createTemplateTask(raw: z.input<typeof taskInput>): Promis
         description: input.description ?? "",
         lane: input.lane ?? "core",
         checklist: input.checklist ?? [],
-        dueAnchor: input.dueAnchor ?? null,
-        dueOffsetDays: input.dueAnchor ? (input.dueOffsetDays ?? 0) : null,
+        ...dueFields(input),
+        ...assigneeFields(input),
         position: max + 1,
       })
       .returning({ id: templateTasks.id });
@@ -121,7 +170,8 @@ export async function updateTemplateTask(id: string, raw: Partial<z.input<typeof
         ...(patch.description !== undefined ? { description: patch.description } : {}),
         ...(patch.lane !== undefined ? { lane: patch.lane } : {}),
         ...(patch.checklist !== undefined ? { checklist: patch.checklist } : {}),
-        ...(patch.dueAnchor !== undefined ? { dueAnchor: patch.dueAnchor, dueOffsetDays: patch.dueAnchor ? (patch.dueOffsetDays ?? 0) : null } : {}),
+        ...(patch.dueAnchor !== undefined || patch.dueFromCreation !== undefined ? dueFields(patch) : {}),
+        ...(patch.assigneeId !== undefined || patch.assignToOwner !== undefined ? assigneeFields(patch) : {}),
       })
       .where(eq(templateTasks.id, id));
     revalidatePath("/templates");
