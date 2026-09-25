@@ -2,10 +2,39 @@
 
 import Link from "next/link";
 import clsx from "clsx";
-import { AlertCircle, ArrowRight, CalendarClock, CheckSquare, Clock, ExternalLink, Eye } from "lucide-react";
+import { AlertCircle, ArrowRight, Ban, CalendarClock, Clock, ExternalLink, Eye, Hourglass, Moon } from "lucide-react";
 import type { CaseSummary } from "@/lib/data/types";
 import { HEALTH_COLORS } from "@/lib/domain/constants";
-import { fmtDateShort, relTime } from "@/lib/format";
+import { initials } from "@/lib/domain/task-dots";
+import { daysUntil, fmtDateShort, relTime } from "@/lib/format";
+import { TaskDots } from "./task-dots";
+
+/** Days without any activity before a case gets the "quiet" sticker. */
+const QUIET_DAYS = 30;
+
+type Sticker = { key: string; label: string; icon: typeof Clock; tone: "bad" | "warn" | "review" | "muted"; title: string };
+
+function stickers(c: CaseSummary): Sticker[] {
+  const m = c.metrics;
+  const out: Sticker[] = [];
+  const stageTone = m.reasons.some((r) => r.includes("days in stage")) ? (m.health === "red" ? "bad" : "warn") : "muted";
+  out.push({ key: "days", label: `${m.daysInStage}d in stage`, icon: Clock, tone: stageTone, title: `In ${c.stage.name} for ${m.daysInStage} days` });
+  if (m.overdueTasks) out.push({ key: "late", label: `${m.overdueTasks} late`, icon: AlertCircle, tone: "bad", title: "Tasks past their due date" });
+  if (m.blockedTasks) out.push({ key: "blocked", label: `${m.blockedTasks} blocked`, icon: Ban, tone: "bad", title: "Tasks blocked by an internal issue" });
+  if (m.reviewTasks) out.push({ key: "review", label: `${m.reviewTasks} review`, icon: Eye, tone: "review", title: "Tasks waiting for attorney review" });
+  if (m.followUpsDue) out.push({ key: "follow", label: `${m.followUpsDue} follow-up`, icon: Clock, tone: "warn", title: "Waiting tasks due for a follow-up" });
+  else if (m.waitingTasks) out.push({ key: "waiting", label: `${m.waitingTasks} waiting`, icon: Hourglass, tone: "muted", title: "Tasks waiting on someone outside the firm" });
+  const quiet = -(daysUntil(c.lastActivityAt) ?? 0);
+  if (quiet >= QUIET_DAYS) out.push({ key: "quiet", label: `quiet ${quiet}d`, icon: Moon, tone: "muted", title: `No activity for ${quiet} days` });
+  return out;
+}
+
+const TONE: Record<Sticker["tone"], string> = {
+  bad: "bg-bad/10 text-bad",
+  warn: "bg-warn/15 text-amber-800",
+  review: "bg-violet-100 text-violet-700",
+  muted: "bg-surface-2 text-muted",
+};
 
 export function CaseCard({
   c,
@@ -13,6 +42,7 @@ export function CaseCard({
   nextStageName,
   onSelect,
   onAdvance,
+  onOpenTask,
   dragging,
 }: {
   c: CaseSummary;
@@ -20,10 +50,16 @@ export function CaseCard({
   nextStageName: string | null;
   onSelect?: () => void;
   onAdvance?: () => void;
+  /** Called when a task dot is clicked. */
+  onOpenTask?: (taskId: string) => void;
   dragging?: boolean;
 }) {
   const m = c.metrics;
   const next = m.nextEvent;
+  const total = c.tasks.length;
+  const done = c.tasks.filter((t) => t.status === "done").length;
+  const people = [...new Set(c.tasks.filter((t) => t.status !== "done" && t.assigneeName).map((t) => t.assigneeName!))];
+
   return (
     <div
       onClick={onSelect}
@@ -46,7 +82,7 @@ export function CaseCard({
               </span>
             )}
             {c.caseNumber && <span className="font-mono">{c.caseNumber}</span>}
-            {c.county && <span>· {c.county}</span>}
+            {c.county && <span className="truncate">· {c.county}</span>}
           </div>
         </div>
         <Link
@@ -59,21 +95,39 @@ export function CaseCard({
         </Link>
       </div>
 
-      <div className="mt-2 grid grid-cols-4 gap-1 text-[11px] text-muted">
-        <Stat icon={<Clock size={11} />} value={m.daysInStage} label="days" tone={m.reasons.some((r) => r.includes("days in stage")) ? (m.health === "red" ? "bad" : "warn") : undefined} />
-        <Stat icon={<CheckSquare size={11} />} value={m.openTasks} label="open" />
-        <Stat icon={<AlertCircle size={11} />} value={m.overdueTasks} label="late" tone={m.overdueTasks ? "bad" : undefined} />
-        <Stat icon={<Eye size={11} />} value={m.reviewTasks} label="review" tone={m.reviewTasks ? "warn" : undefined} />
+      {/* One dot per task */}
+      <div className="mt-2">
+        {total > 0 ? (
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <TaskDots tasks={c.tasks} onOpen={onOpenTask} />
+            </div>
+            <span className="shrink-0 pt-px text-[10px] font-semibold tabular-nums text-muted" title={`${done} of ${total} tasks done`}>
+              {done}/{total}
+            </span>
+          </div>
+        ) : (
+          <div className="text-[11px] text-faint">No tasks yet</div>
+        )}
+      </div>
+
+      {/* Stickers */}
+      <div className="mt-2 flex flex-wrap gap-1">
+        {stickers(c).map((s) => (
+          <span key={s.key} className={clsx("inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none", TONE[s.tone])} title={s.title}>
+            <s.icon size={10} /> {s.label}
+          </span>
+        ))}
       </div>
 
       {next && (
         <div
           className={clsx(
-            "mt-2 flex items-center gap-1 truncate rounded px-1.5 py-1 text-[11px]",
+            "mt-1.5 flex items-center gap-1 truncate rounded px-1.5 py-1 text-[11px]",
             m.daysToNextEvent !== null && m.daysToNextEvent < 0
               ? "bg-bad/10 text-bad"
               : m.daysToNextEvent !== null && m.daysToNextEvent <= 7
-                ? "bg-warn/15 text-amber-700"
+                ? "bg-warn/15 text-amber-800"
                 : "bg-surface-2 text-muted",
           )}
         >
@@ -85,9 +139,21 @@ export function CaseCard({
         </div>
       )}
 
-      <div className="mt-2 flex items-center justify-between text-[11px] text-faint">
-        <span className="truncate">{c.ownerName ?? "Unassigned"}</span>
-        <span className="shrink-0">{relTime(c.lastActivityAt)}</span>
+      <div className="mt-2 flex items-center gap-1.5 text-[11px] text-faint">
+        <span className="min-w-0 flex-1 truncate" title="Responsible attorney or staff">
+          {c.ownerName ?? "Unassigned"}
+        </span>
+        {people.length > 0 && (
+          <span className="flex -space-x-1" title={`Working on it: ${people.join(", ")}`}>
+            {people.slice(0, 3).map((p) => (
+              <span key={p} className="flex h-4 min-w-4 items-center justify-center rounded-full border border-surface bg-brand-soft px-0.5 text-[8px] font-bold text-brand">
+                {initials(p)}
+              </span>
+            ))}
+            {people.length > 3 && <span className="flex h-4 items-center pl-1.5 text-[9px] font-semibold text-muted">+{people.length - 3}</span>}
+          </span>
+        )}
+        <span className="shrink-0 group-hover:invisible">{relTime(c.lastActivityAt)}</span>
       </div>
 
       {nextStageName && onAdvance && (
@@ -103,16 +169,6 @@ export function CaseCard({
           {nextStageName} <ArrowRight size={10} />
         </button>
       )}
-    </div>
-  );
-}
-
-function Stat({ icon, value, label, tone }: { icon: React.ReactNode; value: number; label: string; tone?: "warn" | "bad" }) {
-  return (
-    <div className={clsx("flex items-center gap-1", tone === "bad" && "text-bad font-semibold", tone === "warn" && "text-amber-600 font-semibold")}>
-      {icon}
-      <span>{value}</span>
-      <span className="text-faint">{label}</span>
     </div>
   );
 }

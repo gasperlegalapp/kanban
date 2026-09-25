@@ -6,6 +6,7 @@ import type { Dashboard } from "@/lib/data/work";
 import type { CaseSummary } from "@/lib/data/types";
 import { HEALTH_COLORS } from "@/lib/domain/constants";
 import { dueLabel, fmtDate, relTime } from "@/lib/format";
+import { TaskDots } from "@/components/board/task-dots";
 
 const STALE_DAYS = 30;
 
@@ -212,19 +213,20 @@ function Num({ v, tone, className }: { v: number; tone?: "bad" | "warn"; classNa
 function CaseRow({ c }: { c: CaseSummary }) {
   const m = c.metrics;
   return (
-    <li>
-      <Link href={`/cases/${c.id}`} className="flex items-center gap-3 px-3 py-2 hover:bg-surface-2" title={m.reasons.join("\n")}>
-        <span className="flex w-14 shrink-0 items-center gap-1.5 text-[11px] font-semibold uppercase" style={{ color: HEALTH_COLORS[m.health] }}>
-          <span className="h-2 w-2 rounded-full" style={{ background: HEALTH_COLORS[m.health] }} />
-          <span className="text-ink-2">{m.health === "red" ? "Red" : "Yellow"}</span>
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{c.title}</span>
-          <span className="block truncate text-[11px] text-muted">{m.reasons.join(" · ")}</span>
-        </span>
-        <span className="hidden w-32 truncate text-right text-xs text-muted md:inline">{c.stage.name}</span>
-        <span className="w-28 truncate text-right text-xs text-muted">{c.ownerName ?? "Unassigned"}</span>
+    <li className="flex items-center gap-3 px-3 py-2 hover:bg-surface-2" title={m.reasons.join("\n")}>
+      <span className="flex w-14 shrink-0 items-center gap-1.5 text-[11px] font-semibold uppercase" style={{ color: HEALTH_COLORS[m.health] }}>
+        <span className="h-2 w-2 rounded-full" style={{ background: HEALTH_COLORS[m.health] }} />
+        <span className="text-ink-2">{m.health === "red" ? "Red" : "Yellow"}</span>
+      </span>
+      <Link href={`/cases/${c.id}`} className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium hover:underline">{c.title}</span>
+        <span className="block truncate text-[11px] text-muted">{m.reasons.join(" · ")}</span>
       </Link>
+      <span className="hidden w-40 shrink-0 xl:block">
+        <TaskDots tasks={c.tasks} caseId={c.id} max={14} size={9} />
+      </span>
+      <span className="hidden w-32 truncate text-right text-xs text-muted md:inline">{c.stage.name}</span>
+      <span className="w-28 truncate text-right text-xs text-muted">{c.ownerName ?? "Unassigned"}</span>
     </li>
   );
 }

@@ -18,6 +18,7 @@ export function CaseBoard({
   onSelect,
   onDrop,
   onAdvance,
+  onOpenTask,
 }: {
   config: BoardConfig;
   cases: CaseSummary[];
@@ -25,6 +26,7 @@ export function CaseBoard({
   onSelect: (id: string | null) => void;
   onDrop: (drop: CaseDrop) => void;
   onAdvance: (c: CaseSummary) => void;
+  onOpenTask: (taskId: string) => void;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -106,6 +108,7 @@ export function CaseBoard({
               selectedCaseId={selectedCaseId}
               onSelect={onSelect}
               onAdvance={onAdvance}
+              onOpenTask={onOpenTask}
               nextStageName={nextStageName}
               activeId={activeId}
               showLabel={config.lanes.length > 0}
@@ -169,6 +172,7 @@ function LaneRow({
   selectedCaseId,
   onSelect,
   onAdvance,
+  onOpenTask,
   nextStageName,
   activeId,
   showLabel,
@@ -179,6 +183,7 @@ function LaneRow({
   selectedCaseId: string | null;
   onSelect: (id: string | null) => void;
   onAdvance: (c: CaseSummary) => void;
+  onOpenTask: (taskId: string) => void;
   nextStageName: (c: CaseSummary) => string | null;
   activeId: string | null;
   showLabel: boolean;
@@ -202,6 +207,7 @@ function LaneRow({
                 nextStageName={nextStageName(c)}
                 onSelect={() => onSelect(selectedCaseId === c.id ? null : c.id)}
                 onAdvance={() => onAdvance(c)}
+                onOpenTask={onOpenTask}
                 dragging={activeId === c.id}
               />
             </DraggableCase>

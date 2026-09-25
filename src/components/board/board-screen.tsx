@@ -19,6 +19,7 @@ import { NewCaseDialog } from "@/components/cases/new-case-dialog";
 import { NewTaskDialog } from "@/components/tasks/new-task-dialog";
 import { TaskDrawer } from "@/components/tasks/task-drawer";
 import { WaitingDialog } from "@/components/tasks/waiting-dialog";
+import { TaskDotLegend } from "./task-dots";
 
 type PendingMove = { c: CaseSummary; stageId: string; laneId: string | null; backward: boolean };
 
@@ -207,6 +208,7 @@ export function BoardScreen({
             <StatPill label="In review" value={stats.review} tone={stats.review ? "warn" : undefined} />
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <TaskDotLegend />
             <Link href={showClosed ? `/boards/${config.board.id}` : `/boards/${config.board.id}?closed=1`} className="btn btn-sm">
               {showClosed ? <EyeOff size={12} /> : <Eye size={12} />}
               {showClosed ? "Hide closed" : "Show closed"}
@@ -220,7 +222,7 @@ export function BoardScreen({
           <FilterBar config={config} filters={filters} onChange={setFilters} />
         </div>
         <div className="flex min-h-0 flex-1 flex-col px-4 pb-2">
-          <CaseBoard config={config} cases={filtered} selectedCaseId={selectedCaseId} onSelect={setSelectedCaseId} onDrop={onCaseDrop} onAdvance={onAdvance} />
+          <CaseBoard config={config} cases={filtered} selectedCaseId={selectedCaseId} onSelect={setSelectedCaseId} onDrop={onCaseDrop} onAdvance={onAdvance} onOpenTask={setOpenTaskId} />
         </div>
       </section>
 

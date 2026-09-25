@@ -22,6 +22,7 @@ import { AttachmentsPanel } from "./attachments-panel";
 import { EditCaseDialog } from "./edit-case-dialog";
 import { EventDialog } from "./event-dialog";
 import { StageStepper } from "./stage-stepper";
+import { TaskDots } from "@/components/board/task-dots";
 
 export function CaseDetailScreen({
   detail,
@@ -116,6 +117,14 @@ export function CaseDetailScreen({
                 </span>
                 {m.reasons.length > 0 && <span className={clsx("font-medium", m.health === "red" ? "text-bad" : "text-amber-700")}>{m.reasons.join(" · ")}</span>}
               </div>
+              {detail.tasks.length > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <TaskDots tasks={detail.tasks} onOpen={setOpenTaskId} size={11} max={80} />
+                  <span className="text-xs font-semibold tabular-nums text-muted">
+                    {detail.tasks.filter((t) => t.status === "done").length}/{detail.tasks.length} done
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {detail.actionstepUrl && (
