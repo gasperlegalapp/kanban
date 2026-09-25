@@ -57,7 +57,7 @@ export function AppShell({
             </span>
             <span className="hidden xl:inline">Case Control</span>
           </Link>
-          <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto text-sm">
+          <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto text-sm [scrollbar-width:none]">
             {nav.map((item) => (
               <Link
                 key={item.href}
@@ -105,12 +105,21 @@ export function AppShell({
 }
 
 function AdminMenu({ items, active }: { items: NavItem[]; active: boolean }) {
-  const [open, setOpen] = useState(false);
+  // Where to draw the menu. It is positioned against the window, not the nav,
+  // because the nav scrolls sideways and would otherwise clip it.
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const open = pos !== null;
+  const setOpen = (v: boolean) => !v && setPos(null);
   return (
-    <div className="relative shrink-0">
+    <div className="shrink-0">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        onClick={(e) => {
+          if (open) return setPos(null);
+          const r = e.currentTarget.getBoundingClientRect();
+          setPos({ left: Math.min(r.left, window.innerWidth - 184), top: r.bottom + 6 });
+        }}
         className={clsx("flex items-center gap-1 rounded-md px-2.5 py-1.5", active ? "bg-white/15 text-white" : "text-white/75 hover:bg-white/10 hover:text-white")}
       >
         <Settings size={14} /> Admin <ChevronDown size={12} />
@@ -118,7 +127,7 @@ function AdminMenu({ items, active }: { items: NavItem[]; active: boolean }) {
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-9 z-40 w-44 overflow-hidden rounded-lg border border-line bg-surface py-1 text-ink shadow-pop">
+          <div className="fixed z-40 w-44 overflow-hidden rounded-lg border border-line bg-surface py-1 text-ink shadow-pop" style={pos}>
             {items.map((i) => (
               <Link key={i.href} href={i.href} onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-surface-2">
                 <i.icon size={14} className="text-muted" /> {i.label}
